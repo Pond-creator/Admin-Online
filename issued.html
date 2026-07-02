@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👜</text></svg>">
+  <title>Admin Online — ใบกำกับที่ออกแล้ว</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <span class="brand"><span class="icon">📝</span>Admin Online</span>
+  <nav>
+    <a href="form.html">➕ สร้างโน๊ต</a>
+    <a href="dashboard.html">📋 รายการโน๊ต</a>
+    <a href="issued.html" class="active">📄 ใบกำกับที่ออกแล้ว</a>
+  </nav>
+  <span class="spacer"></span>
+  <button class="btn btn-primary btn-sm" onclick="location.reload()">🔄 รีเฟรช</button>
+  <span class="spacer"></span>
+  <span class="user-box" id="user-box"></span>
+  <button class="btn btn-secondary btn-sm" onclick="Auth.logout()">ออกจากระบบ</button>
+</header>
+
+<div class="container" style="max-width:1100px">
+  <div class="filters">
+    <div class="form-group">
+      <label class="form-label">ร้านค้า</label>
+      <select id="if-store" class="form-control"><option value="">ทั้งหมด</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">จากวันที่ออก</label>
+      <input id="if-from" class="form-control" placeholder="วว/ดด/ปปปป" style="max-width:150px">
+    </div>
+    <div class="form-group">
+      <label class="form-label">ถึงวันที่ออก</label>
+      <input id="if-to" class="form-control" placeholder="วว/ดด/ปปปป" style="max-width:150px">
+    </div>
+    <div class="form-group" style="flex:1;min-width:200px">
+      <label class="form-label">ค้นหา (ชื่อลูกค้า / เลขคำสั่งซื้อ)</label>
+      <input id="if-q" class="form-control" placeholder="พิมพ์เพื่อค้นหา...">
+    </div>
+  </div>
+
+  <div id="if-summary" class="stats-grid" style="grid-template-columns:repeat(3,1fr)"></div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead><tr>
+        <th>วันที่ออก</th><th>ร้าน</th><th>ลูกค้า</th><th>เลขคำสั่งซื้อ</th>
+        <th>ประเภท</th><th>เอกสาร</th><th></th>
+      </tr></thead>
+      <tbody id="if-rows"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">กำลังโหลด...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/issued.js"></script>
+<script src="js/recent.js"></script>
+<script src="js/users.js"></script>
+</body>
+</html>

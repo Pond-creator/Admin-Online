@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👜</text></svg>">
+  <title>Admin Online — สร้างโน๊ต</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <span class="brand"><span class="icon">📝</span>Admin Online</span>
+  <nav>
+    <a href="form.html" class="active">➕ สร้างโน๊ต</a>
+    <a href="dashboard.html">📋 รายการโน๊ต</a>
+    <a href="issued.html">📄 ใบกำกับที่ออกแล้ว</a>
+  </nav>
+  <span class="spacer"></span>
+  <button class="btn btn-primary btn-sm" onclick="location.reload()">🔄 รีเฟรช</button>
+  <span class="spacer"></span>
+  <span class="user-box" id="user-box"></span>
+  <button class="btn btn-secondary btn-sm" onclick="Auth.logout()">ออกจากระบบ</button>
+</header>
+
+<div class="container">
+  <!-- เลือกประเภท -->
+  <div class="tabs" id="type-tabs"></div>
+
+  <form id="note-form">
+    <!-- ข้อมูลร่วม -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">ข้อมูลทั่วไป</div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label class="form-label">วันที่โน๊ต <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="date_noted" class="form-control" placeholder="วว/ดด/ปปปป" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ร้านค้า <span style="color:var(--danger)">*</span></label>
+          <select id="store" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ช่องทางขาย <span style="color:var(--danger)">*</span></label>
+          <select id="channel" class="form-control" required></select>
+        </div>
+        <div class="form-group" id="channel-other-group" style="display:none">
+          <label class="form-label">ระบุช่องทาง (อื่นๆ) <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="channel_other" class="form-control" placeholder="พิมพ์ช่องทางที่ขาย">
+        </div>
+        <div class="form-group">
+          <label class="form-label">หมายเลขคำสั่งซื้อ</label>
+          <input type="text" id="order_no" class="form-control" placeholder="เช่น 2606155J40WBA4 (ไม่บังคับ)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">วันที่สั่งซื้อ <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="purchase_date" class="form-control" placeholder="วว/ดด/ปปปป">
+        </div>
+      </div>
+    </div>
+
+    <!-- ส่วนเฉพาะประเภท -->
+    <div id="type-section"></div>
+
+    <!-- หมายเหตุ + รูป -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea id="remark" class="form-control" rows="2" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">แนบรูป (หลายรูปได้)</label>
+        <input type="file" id="images" class="form-control" accept="image/*" multiple>
+        <div class="img-previews" id="img-previews"></div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg" style="width:100%" id="btn-save">
+      💾 บันทึกโน๊ต
+    </button>
+  </form>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/form.js"></script>
+<script src="js/recent.js"></script>
+<script src="js/users.js"></script>
+</body>
+</html>

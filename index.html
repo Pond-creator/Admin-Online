@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👜</text></svg>">
+  <title>Admin Online — เข้าสู่ระบบ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-icon">📝</span>
+      <h1>Admin Online</h1>
+      <p>ระบบโน๊ตงานแอดมิน — Folio</p>
+    </div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" id="username" class="form-control" placeholder="กรอก username" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="กรอก password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%" id="btn-login">
+        🔑 เข้าสู่ระบบ
+      </button>
+    </form>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script>
+  if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true;
+    btn.textContent = '⏳ กำลังเข้าสู่ระบบ...';
+
+    const res = await API.login(
+      document.getElementById('username').value.trim(),
+      document.getElementById('password').value
+    );
+
+    if (res.success) {
+      Auth.setSession(res.token, res.user);
+      toast('ยินดีต้อนรับ ' + res.user.name, 'success');
+      setTimeout(() => window.location.href = 'dashboard.html', 700);
+    } else {
+      toast(res.message || 'เข้าสู่ระบบไม่ได้', 'error');
+      btn.disabled = false;
+      btn.textContent = '🔑 เข้าสู่ระบบ';
+    }
+  });
+</script>
+</body>
+</html>
