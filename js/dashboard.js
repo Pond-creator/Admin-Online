@@ -300,8 +300,8 @@ function noteBodyHtml(data) {
 
   const imgs = (note.images || '').split(',').filter(Boolean);
   if (imgs.length) {
-    body += `<div style="margin-top:14px"><div class="k" style="color:var(--text-muted);font-size:12px">รูปแนบ</div><div class="img-previews">` +
-      imgs.map(u => `<a href="${u.replace('&sz=w1000','')}" target="_blank" class="img-thumb"><img src="${u}"></a>`).join('') + `</div></div>`;
+    body += `<div style="margin-top:14px"><div class="k" style="color:var(--text-muted);font-size:12px">รูปแนบ (ชี้เพื่อดูรูปใหญ่)</div><div class="img-previews">` +
+      imgs.map(u => `<a href="${u.replace('&sz=w1000', '')}" target="_blank" class="img-zoom-wrap" title="ชี้ดูรูปใหญ่ / คลิกเปิดเต็ม"><img class="thumb" src="${u}"><img class="zoom" src="${u.replace('sz=w1000', 'sz=w1600')}"></a>`).join('') + `</div></div>`;
   }
 
   // เอกสารใบกำกับตัวจริง (ถ้าออกแล้ว)

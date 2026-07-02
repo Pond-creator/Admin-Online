@@ -93,7 +93,8 @@ const REPORT = {
       if (REPORT_TYPE === 'cancel') {
         detail = `${escapeHtml(n.cancel_reason || '-')}` +
           (n.cancel_status ? ` <span class="badge badge-muted">${escapeHtml(n.cancel_status)}</span>` : '') +
-          (n.cancel_item_status ? ` <span class="badge badge-muted">${escapeHtml(n.cancel_item_status)}</span>` : '');
+          (n.cancel_item_status ? ` <span class="badge badge-muted">${escapeHtml(n.cancel_item_status)}</span>` : '') +
+          (n.cancel_warehouse ? ` <span class="badge badge-primary">📦 ${escapeHtml(n.cancel_warehouse)}</span>` : '');
       } else if (REPORT_TYPE === 'sale') {
         detail = `<span style="color:var(--primary);font-weight:700">${fmtMoney(n.grand_total)} ฿</span>`;
       } else {

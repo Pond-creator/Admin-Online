@@ -1237,3 +1237,16 @@ td:hover .btn-img-quick,
   .recent-toggle, .recent-drawer, .app-header, .app-loader { display: none !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* รูปแนบ: ชี้เพื่อดูรูปใหญ่ (hover zoom) */
+.img-zoom-wrap { position: relative; display: inline-block; }
+.img-zoom-wrap .thumb {
+  width: 90px; height: 90px; object-fit: cover; border-radius: 10px;
+  border: 1px solid var(--border); cursor: zoom-in; display: block;
+}
+.img-zoom-wrap .zoom { display: none; }
+.img-zoom-wrap:hover .zoom {
+  display: block; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  max-width: 82vw; max-height: 84vh; z-index: 10000;
+  border: 3px solid #fff; border-radius: 10px; box-shadow: 0 12px 55px rgba(0,0,0,0.55); background: #fff;
+}
