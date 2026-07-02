@@ -352,8 +352,20 @@ function tplCancel() {
     <div class="section-title">รายละเอียดการยกเลิก</div>
     <div class="form-group"><label class="form-label">สาเหตุ</label>
       <textarea id="cancel_reason" class="form-control" rows="2" placeholder="เช่น สินค้ามีขนาดเล็กกว่าที่ใช้อยู่"></textarea></div>
-    <div class="form-group"><label class="form-label">สถานะ</label>
-      <input id="cancel_status" class="form-control" placeholder="เช่น สินค้าถึงบริษัทแล้ว / รอตรวจสอบ"></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">สถานะการส่งคืน</label>
+        <select id="cancel_status" class="form-control">
+          <option value="">— เลือก —</option>
+          <option>อยู่ระหว่างจัดส่ง</option>
+          <option>ถึงบริษัทแล้ว</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">สถานะสินค้าที่คืน</label>
+        <select id="cancel_item_status" class="form-control">
+          <option value="">— เลือก —</option>
+          <option>ตรวจสอบแล้ว</option>
+          <option>รอตรวจสอบ</option>
+        </select></div>
+    </div>
     <div class="form-group" style="margin-bottom:0"><label class="form-label">คลังที่รับสินค้าเข้า</label>
       <select id="cancel_warehouse" class="form-control">
         <option value="">— เลือก —</option>
@@ -562,7 +574,8 @@ async function submitNote(e) {
 
   } else if (currentType === 'cancel') {
     payload.cancel_reason = document.getElementById('cancel_reason').value.trim();
-    payload.cancel_status = document.getElementById('cancel_status').value.trim();
+    payload.cancel_status = document.getElementById('cancel_status').value;
+    payload.cancel_item_status = document.getElementById('cancel_item_status').value;
     if (!payload.cancel_reason) return toast('กรุณากรอกสาเหตุการยกเลิก', 'warning');
     let wh = document.getElementById('cancel_warehouse').value;
     if (wh === 'อื่นๆ') {
@@ -733,6 +746,7 @@ async function loadForEdit(id) {
   } else if (note.type === 'cancel') {
     document.getElementById('cancel_reason').value = note.cancel_reason || '';
     document.getElementById('cancel_status').value = note.cancel_status || '';
+    document.getElementById('cancel_item_status').value = note.cancel_item_status || '';
     const wh = note.cancel_warehouse || '';
     const whSel = document.getElementById('cancel_warehouse');
     if (['คลัง 01', 'คลัง 15', 'คลัง 99'].includes(wh)) {
