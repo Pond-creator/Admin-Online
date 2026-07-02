@@ -274,7 +274,8 @@ function noteBodyHtml(data) {
   } else if (note.type === 'cancel') {
     body += `<div class="detail-grid">
       <div class="k">สาเหตุ</div><div>${escapeHtml(note.cancel_reason || '-')}</div>
-      <div class="k">สถานะ</div><div>${escapeHtml(note.cancel_status || '-')}</div>
+      <div class="k">สถานะการส่งคืน</div><div>${escapeHtml(note.cancel_status || '-')}</div>
+      <div class="k">สถานะสินค้าที่คืน</div><div>${escapeHtml(note.cancel_item_status || '-')}</div>
       <div class="k">คลังที่รับเข้า</div><div>${escapeHtml(note.cancel_warehouse || '-')}</div>
     </div>`;
   } else if (note.type === 'tax' && tax) {
