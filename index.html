@@ -37,7 +37,7 @@
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
 <script>
-  if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+  if (Auth.isLoggedIn()) window.location.href = Auth.landing();
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -53,7 +53,7 @@
     if (res.success) {
       Auth.setSession(res.token, res.user);
       toast('ยินดีต้อนรับ ' + res.user.name, 'success');
-      setTimeout(() => window.location.href = 'dashboard.html', 700);
+      setTimeout(() => window.location.href = Auth.landing(), 700);
     } else {
       toast(res.message || 'เข้าสู่ระบบไม่ได้', 'error');
       btn.disabled = false;

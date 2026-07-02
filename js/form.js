@@ -38,8 +38,8 @@ async function init() {
   const u = Auth.getUser();
   // บัญชี (account) สร้าง/แก้ไขไม่ได้ → เด้งไปหน้ารายการ
   if (!Auth.can('create') && !Auth.can('edit')) {
-    toast('บัญชีของคุณดูได้อย่างเดียว', 'warning');
-    setTimeout(() => window.location.href = 'dashboard.html', 800);
+    toast('บัญชีของคุณไม่มีสิทธิ์สร้าง/แก้ไข', 'warning');
+    setTimeout(() => window.location.href = Auth.landing(), 800);
     return;
   }
   document.getElementById('user-box').innerHTML =
@@ -242,10 +242,12 @@ function itemCardGift(no) {
         <input class="form-control" data-color placeholder="ดึงอัตโนมัติ"></div>
     </div>
     <div class="grid-3">
-      <div class="form-group" style="margin-bottom:0"><label class="form-label">จำนวน</label>
+      <div class="form-group"><label class="form-label">จำนวน</label>
         <input type="number" class="form-control" data-qty value="1" min="1"></div>
+      <div class="form-group"><label class="form-label">ราคา/ชิ้น</label>
+        <input type="number" class="form-control" data-price value="0" min="0"></div>
     </div>
-    <div class="item-name-preview" style="color:var(--success)">🎁 ของแถม — ไม่คิดราคา</div>
+    <div class="item-name-preview" data-giftval style="color:var(--success)">🎁 ของแถม (คิดเป็นส่วนลด)</div>
   </div>`;
 }
 
@@ -256,8 +258,11 @@ function addGiftItem() {
   const card = box.lastElementChild;
   bindLookup(card);
   card.querySelector('[data-remove]').addEventListener('click', () => {
-    card.remove(); renumberGift();
+    card.remove(); renumberGift(); recalcSale();
   });
+  ['[data-qty]', '[data-price]'].forEach(sel =>
+    card.querySelector(sel).addEventListener('input', recalcSale));
+  recalcSale();
   return card;
 }
 
@@ -277,6 +282,16 @@ function recalcSale() {
     discountTotal += disc;
     c.querySelector('[data-linetotal]').innerHTML =
       `รวมรายการ: <b>${fmtMoney(line)}</b> บาท`;
+  });
+  // ของแถม: มูลค่าเข้าทั้ง gross และส่วนลด (ฟรี → ยอดชำระไม่รวม)
+  document.querySelectorAll('#sale-items [data-gift-item]').forEach(c => {
+    const qty = +c.querySelector('[data-qty]').value || 0;
+    const price = +c.querySelector('[data-price]').value || 0;
+    const val = qty * price;
+    gross += val;
+    discountTotal += val;
+    const pv = c.querySelector('[data-giftval]');
+    if (pv) pv.innerHTML = `🎁 มูลค่าของแถม: <b>${fmtMoney(val)}</b> บาท (คิดเป็นส่วนลด)`;
   });
   const subtotal = Math.max(0, gross - discountTotal);
   const ship = +document.getElementById('shipping_fee').value || 0;
@@ -531,7 +546,7 @@ async function submitNote(e) {
 
   if (currentType === 'sale') {
     const items = [];
-    let subtotal = 0;
+    let regAfterDisc = 0, regDisc = 0, giftVal = 0;
     document.querySelectorAll('#sale-items [data-sale-item]').forEach(c => {
       const code = c.querySelector('[data-code]').value.trim();
       const name = c.querySelector('[data-name]').value.trim();
@@ -540,25 +555,27 @@ async function submitNote(e) {
       const price = +c.querySelector('[data-price]').value || 0;
       const discount = +c.querySelector('[data-discount]').value || 0;
       const line_total = Math.max(0, qty * price - discount);
-      subtotal += line_total;
-      items.push({ code, name, color: c.querySelector('[data-color]').value.trim(), qty, price, discount, line_total });
+      regAfterDisc += line_total;
+      regDisc += discount;
+      items.push({ code, name, color: c.querySelector('[data-color]').value.trim(), qty, price, discount, line_total, is_gift: false });
     });
-    // ของแถม (ไม่คิดราคา)
+    // ของแถม: ราคาถูกเก็บไว้ + คิดเป็นส่วนลด (ยอดชำระไม่รวม)
     document.querySelectorAll('#sale-items [data-gift-item]').forEach(c => {
       const code = c.querySelector('[data-code]').value.trim();
       const name = c.querySelector('[data-name]').value.trim();
       if (!code && !name) return;
-      items.push({
-        code, name, color: c.querySelector('[data-color]').value.trim(),
-        qty: +c.querySelector('[data-qty]').value || 1, price: 0, discount: 0, line_total: 0, is_gift: true
-      });
+      const qty = +c.querySelector('[data-qty]').value || 1;
+      const price = +c.querySelector('[data-price]').value || 0;
+      const val = qty * price;
+      giftVal += val;
+      items.push({ code, name, color: c.querySelector('[data-color]').value.trim(), qty, price, discount: 0, line_total: val, is_gift: true });
     });
     if (!items.length) return toast('กรุณากรอกรายการสินค้าอย่างน้อย 1 รายการ', 'warning');
     const ship = +document.getElementById('shipping_fee').value || 0;
     payload.items = items;
     payload.shipping_fee = ship;
-    payload.discount_total = items.reduce((s, i) => s + i.discount, 0);
-    payload.grand_total = subtotal + ship;   // ของแถมไม่รวมในยอด
+    payload.discount_total = regDisc + giftVal;       // รวมส่วนลด = ส่วนลดสินค้า + มูลค่าของแถม
+    payload.grand_total = regAfterDisc + ship;        // ยอดชำระ = สินค้าหลังลด + ค่าส่ง (ของแถมฟรี)
 
   } else if (currentType === 'exchange') {
     payload.from_items = gatherEx('ex-from');
@@ -716,10 +733,8 @@ async function loadForEdit(id) {
       card.querySelector('[data-name]').value = it.name || '';
       card.querySelector('[data-color]').value = it.color || '';
       card.querySelector('[data-qty]').value = it.qty || 1;
-      if (!gift) {
-        card.querySelector('[data-price]').value = it.price || 0;
-        card.querySelector('[data-discount]').value = it.discount || 0;
-      }
+      card.querySelector('[data-price]').value = it.price || 0;   // ทั้งสินค้าและของแถมมีราคา
+      if (!gift) card.querySelector('[data-discount]').value = it.discount || 0;
     });
     if (!box.querySelector('[data-sale-item]')) addSaleItem();
     document.getElementById('shipping_fee').value = note.shipping_fee || 0;

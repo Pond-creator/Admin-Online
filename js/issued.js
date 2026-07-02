@@ -7,6 +7,7 @@ const ISSUED = {
 
   init() {
     if (!document.getElementById('if-rows')) return;
+    if (!Auth.requirePage('issued.html')) return;
     const u = Auth.getUser();
     document.getElementById('user-box').innerHTML = `<b>${escapeHtml(u.name)}</b> ${Auth.getRoleBadge(u.role)}`;
 

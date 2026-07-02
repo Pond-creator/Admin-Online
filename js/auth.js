@@ -39,16 +39,16 @@ const Auth = {
   },
 
   getRoleLabel: (role) => {
-    const labels = { admin: 'Admin', staff: 'พนักงาน', account: 'บัญชี', view: 'ดูอย่างเดียว' };
+    const labels = { admin: 'Admin', staff: 'พนักงาน', account: 'บัญชี', stock: 'สต๊อก', view: 'ดูอย่างเดียว' };
     return labels[role] || role;
   },
 
   getRoleBadge: (role) => {
-    const colors = { admin: 'danger', staff: 'primary', account: 'info', view: 'muted' };
+    const colors = { admin: 'danger', staff: 'primary', account: 'info', stock: 'warning', view: 'muted' };
     return `<span class="badge badge-${colors[role] || 'muted'}">${Auth.getRoleLabel(role)}</span>`;
   },
 
-  // สิทธิ์การใช้งานตาม role
+  // สิทธิ์การกระทำตาม role
   can: (action) => {
     const role = (Auth.getUser() || {}).role;
     const perms = {
@@ -59,11 +59,39 @@ const Auth = {
       manageUsers: ['admin']
     };
     return (perms[action] || []).includes(role);
+  },
+
+  // สิทธิ์เข้าถึงแต่ละหน้า (key = ชื่อไฟล์ .html)
+  pageRoles: {
+    'form.html':      ['admin', 'staff'],
+    'dashboard.html': ['admin', 'staff', 'account'],
+    'issued.html':    ['admin', 'staff', 'account'],
+    'sales.html':     ['admin', 'staff', 'account'],
+    'cancels.html':   ['admin', 'staff', 'account', 'stock'],
+    'exchanges.html': ['admin', 'staff', 'account', 'stock']
+  },
+  canPage: (page) => (Auth.pageRoles[page] || []).includes((Auth.getUser() || {}).role),
+
+  // หน้าแรกที่ควรเข้าหลัง login (ตาม role)
+  landing: () => {
+    const r = (Auth.getUser() || {}).role;
+    if (r === 'stock') return 'cancels.html';
+    return 'dashboard.html';
+  },
+
+  // เด้งออกถ้าไม่มีสิทธิ์ดูหน้านี้
+  requirePage: (page) => {
+    if (!Auth.requireAuth()) return false;
+    if (!Auth.canPage(page)) { window.location.href = Auth.landing(); return false; }
+    return true;
   }
 };
 
-// ซ่อนเมนู "สร้างโน๊ต" สำหรับ role ที่สร้างไม่ได้ (เช่น บัญชี)
+// ซ่อนเมนูที่ role นี้เข้าไม่ได้
 document.addEventListener('DOMContentLoaded', () => {
-  if (!Auth.isLoggedIn() || Auth.can('create')) return;
-  document.querySelectorAll('a[href="form.html"]').forEach(a => a.style.display = 'none');
+  if (!Auth.isLoggedIn()) return;
+  Object.keys(Auth.pageRoles).forEach(page => {
+    if (!Auth.canPage(page))
+      document.querySelectorAll(`a[href="${page}"]`).forEach(a => a.style.display = 'none');
+  });
 });

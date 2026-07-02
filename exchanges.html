@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👜</text></svg>">
-  <title>Admin Online — ใบกำกับที่ออกแล้ว</title>
+  <title>Admin Online — รายงานเปลี่ยนสินค้า</title>
   <link rel="stylesheet" href="lib/flatpickr.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -15,9 +15,9 @@
     <a href="form.html">➕ สร้างโน๊ต</a>
     <a href="dashboard.html">📋 รายการโน๊ต</a>
     <a href="sales.html">💰 รายงานขาย</a>
-    <a href="issued.html" class="active">📄 ใบกำกับที่ออกแล้ว</a>
+    <a href="issued.html">📄 ใบกำกับที่ออกแล้ว</a>
     <a href="cancels.html">🚫 รายงานยกเลิก</a>
-    <a href="exchanges.html">🔄 รายงานเปลี่ยนสินค้า</a>
+    <a href="exchanges.html" class="active">🔄 รายงานเปลี่ยนสินค้า</a>
   </nav>
   <span class="spacer"></span>
   <button class="btn btn-primary btn-sm" onclick="location.reload()">🔄 รีเฟรช</button>
@@ -27,34 +27,33 @@
 </header>
 
 <div class="container" style="max-width:1100px">
+  <h2 style="margin-bottom:16px;color:var(--info)">🔄 รายงานเปลี่ยนสินค้า <span id="rp-count" style="font-size:15px;color:var(--text-muted)">0</span> รายการ</h2>
   <div class="filters">
     <div class="form-group">
       <label class="form-label">ร้านค้า</label>
-      <select id="if-store" class="form-control"><option value="">ทั้งหมด</option></select>
+      <select id="rp-store" class="form-control"><option value="">ทั้งหมด</option></select>
     </div>
     <div class="form-group">
-      <label class="form-label">จากวันที่ออก</label>
-      <input id="if-from" class="form-control" placeholder="วว/ดด/ปปปป" style="max-width:150px">
+      <label class="form-label">จากวันที่</label>
+      <input id="rp-from" class="form-control" placeholder="วว/ดด/ปปปป" style="max-width:150px">
     </div>
     <div class="form-group">
-      <label class="form-label">ถึงวันที่ออก</label>
-      <input id="if-to" class="form-control" placeholder="วว/ดด/ปปปป" style="max-width:150px">
+      <label class="form-label">ถึงวันที่</label>
+      <input id="rp-to" class="form-control" placeholder="วว/ดด/ปปปป" style="max-width:150px">
     </div>
     <div class="form-group" style="flex:1;min-width:200px">
-      <label class="form-label">ค้นหา (ชื่อลูกค้า / เลขคำสั่งซื้อ)</label>
-      <input id="if-q" class="form-control" placeholder="พิมพ์เพื่อค้นหา...">
+      <label class="form-label">ค้นหา (เลขคำสั่งซื้อ / ลูกค้า / หมายเหตุ)</label>
+      <input id="rp-q" class="form-control" placeholder="พิมพ์เพื่อค้นหา...">
     </div>
+    <button class="btn btn-success" id="rp-export">⬇️ Export Excel</button>
   </div>
-
-  <div id="if-summary" class="stats-grid" style="grid-template-columns:repeat(3,1fr)"></div>
 
   <div class="table-wrapper">
     <table>
       <thead><tr>
-        <th>วันที่ออก</th><th>ร้าน</th><th>ลูกค้า</th><th>เลขคำสั่งซื้อ</th>
-        <th>ประเภท</th><th>เอกสาร</th><th></th>
+        <th>วันที่โน๊ต</th><th>ร้าน</th><th>ช่องทาง</th><th>เลขคำสั่งซื้อ</th><th>ค่าเปลี่ยน</th><th></th>
       </tr></thead>
-      <tbody id="if-rows"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">กำลังโหลด...</td></tr></tbody>
+      <tbody id="rp-rows"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">กำลังโหลด...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -62,13 +61,13 @@
 <div id="modal-root"></div>
 <div id="toast-container"></div>
 
+<script>const REPORT_TYPE = 'exchange';</script>
 <script src="lib/flatpickr.min.js"></script>
 <script src="lib/flatpickr-th.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
 <script src="js/dashboard.js"></script>
-<script src="js/issued.js"></script>
-<script src="js/recent.js"></script>
+<script src="js/report.js"></script>
 <script src="js/users.js"></script>
 </body>
 </html>

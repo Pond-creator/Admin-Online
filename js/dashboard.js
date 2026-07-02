@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   if (!document.getElementById('f-type')) return;   // ไม่ใช่หน้ารายการโน๊ต → ไม่รัน
+  if (!Auth.requirePage('dashboard.html')) return;   // ไม่มีสิทธิ์ดู → เด้งออก
   const u = Auth.getUser();
   document.getElementById('user-box').innerHTML =
     `<b>${escapeHtml(u.name)}</b> ${Auth.getRoleBadge(u.role)}`;
@@ -250,13 +251,13 @@ function noteBodyHtml(data) {
         <td>${escapeHtml(i.name)} ${gift ? '<span class="badge badge-success">🎁 ของแถม</span>' : ''}</td>
         <td>${escapeHtml(i.color)}</td>
         <td style="text-align:right">${i.qty}</td>
-        <td style="text-align:right">${gift ? '-' : fmtMoney(i.price)}</td>
-        <td style="text-align:right">${gift ? '-' : fmtMoney(i.discount)}</td>
-        <td style="text-align:right">${gift ? 'แถม' : fmtMoney(i.line_total)}</td>
+        <td style="text-align:right">${fmtMoney(i.price)}</td>
+        <td style="text-align:right">${gift ? 'แถม' : fmtMoney(i.discount)}</td>
+        <td style="text-align:right">${gift ? '🎁 แถม' : fmtMoney(i.line_total)}</td>
       </tr>`; }).join('') + `</tbody></table>`;
     const isGift = i => (i.is_gift === true || i.is_gift === 'TRUE' || i.is_gift === 'true');
-    const gross = sale_items.reduce((s, i) => s + (isGift(i) ? 0 : (+i.qty || 0) * (+i.price || 0)), 0);
-    const disc = sale_items.reduce((s, i) => s + (+i.discount || 0), 0);
+    const gross = sale_items.reduce((s, i) => s + (+i.qty || 0) * (+i.price || 0), 0);
+    const disc = sale_items.reduce((s, i) => s + (isGift(i) ? (+i.qty || 0) * (+i.price || 0) : (+i.discount || 0)), 0);
     body += `<div class="total-box">
         <div class="total-row"><span>รวมราคาสินค้า (ก่อนหักส่วนลด)</span><span>${fmtMoney(gross)}</span></div>
         <div class="total-row"><span>รวมส่วนลด</span><span style="color:var(--danger)">-${fmtMoney(disc)}</span></div>

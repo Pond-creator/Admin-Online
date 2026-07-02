@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👜</text></svg>">
   <title>Admin Online — สร้างโน๊ต</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="lib/flatpickr.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,7 +14,10 @@
   <nav>
     <a href="form.html" class="active">➕ สร้างโน๊ต</a>
     <a href="dashboard.html">📋 รายการโน๊ต</a>
+    <a href="sales.html">💰 รายงานขาย</a>
     <a href="issued.html">📄 ใบกำกับที่ออกแล้ว</a>
+    <a href="cancels.html">🚫 รายงานยกเลิก</a>
+    <a href="exchanges.html">🔄 รายงานเปลี่ยนสินค้า</a>
   </nav>
   <span class="spacer"></span>
   <button class="btn btn-primary btn-sm" onclick="location.reload()">🔄 รีเฟรช</button>
@@ -83,8 +86,8 @@
 
 <div id="toast-container"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
+<script src="lib/flatpickr.min.js"></script>
+<script src="lib/flatpickr-th.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
 <script src="js/form.js"></script>
