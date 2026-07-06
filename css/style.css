@@ -1250,3 +1250,9 @@ td:hover .btn-img-quick,
   max-width: 82vw; max-height: 84vh; z-index: 10000;
   border: 3px solid #fff; border-radius: 10px; box-shadow: 0 12px 55px rgba(0,0,0,0.55); background: #fff;
 }
+
+/* ช่องที่ดึงข้อมูลจากระบบแล้ว (ล็อกแก้ไม่ได้) */
+.form-control[readonly] {
+  background: var(--bg-card2); color: var(--text-secondary);
+  cursor: not-allowed; border-style: dashed;
+}

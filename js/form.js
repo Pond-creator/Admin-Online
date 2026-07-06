@@ -487,14 +487,18 @@ function bindLookup(card) {
     const res = await API.getProduct(code);
     if (fg) fg.classList.remove('code-loading');
     loading = false;
+    const nameEl = card.querySelector('[data-name]');
+    const colorEl = card.querySelector('[data-color]');
+    const priceEl = card.querySelector('[data-price]');
     if (res.success) {
-      card.querySelector('[data-name]').value = res.data.name;
-      card.querySelector('[data-color]').value = res.data.color;
-      const priceEl = card.querySelector('[data-price]');
-      if (priceEl) { priceEl.value = res.data.price; recalcSale(); }
+      // ดึงจากระบบสำเร็จ → ล็อกไม่ให้แก้ (ชื่อ/สี/ราคา)
+      nameEl.value = res.data.name; nameEl.readOnly = true;
+      colorEl.value = res.data.color; colorEl.readOnly = true;
+      if (priceEl) { priceEl.value = res.data.price; priceEl.readOnly = true; recalcSale(); }
     } else {
       lastCode = '';   // ให้ลองใหม่ได้
-      // ไม่พบในระบบ → ไม่ล้างช่อง ให้กรอกเอง (ขายของนอกระบบ)
+      // ไม่พบในระบบ → ปลดล็อก ให้กรอกเอง (ขายของนอกระบบ)
+      nameEl.readOnly = false; colorEl.readOnly = false; if (priceEl) priceEl.readOnly = false;
       toast('ไม่พบในระบบ — กรอกชื่อ/ราคาเองได้', 'warning');
     }
     // ไม่ดึงโฟกัสกลับ — ผู้ใช้กดไปช่องอื่นได้เลย
