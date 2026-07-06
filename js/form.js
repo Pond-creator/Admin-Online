@@ -156,6 +156,17 @@ function setEntity(type) {
 function tplSale() {
   return `
   <div class="card" style="margin-bottom:16px">
+    <div class="section-title">ข้อมูลลูกค้า</div>
+    <div class="form-group"><label class="form-label">ชื่อลูกค้า <span style="color:var(--danger)">*</span></label>
+      <input id="cust_name" class="form-control" placeholder="ชื่อ-นามสกุล ลูกค้า"></div>
+    <div class="grid-2">
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">ที่อยู่</label>
+        <textarea id="cust_address" class="form-control" rows="2" placeholder="ที่อยู่จัดส่ง (ถ้ามี)"></textarea></div>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">เบอร์ติดต่อ</label>
+        <input id="cust_phone" class="form-control" placeholder="เบอร์โทร (ถ้ามี)"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
     <div class="section-title">รายการสินค้า</div>
     <div id="sale-items"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -545,6 +556,10 @@ async function submitNote(e) {
   if (!payload.purchase_date) return toast('กรุณาเลือกวันที่สั่งซื้อ', 'warning');
 
   if (currentType === 'sale') {
+    payload.cust_name = val('cust_name');
+    payload.cust_address = val('cust_address');
+    payload.cust_phone = val('cust_phone');
+    if (!payload.cust_name) return toast('กรุณากรอกชื่อลูกค้า', 'warning');
     const items = [];
     let regAfterDisc = 0, regDisc = 0, giftVal = 0;
     document.querySelectorAll('#sale-items [data-sale-item]').forEach(c => {
@@ -724,6 +739,9 @@ async function loadForEdit(id) {
 
   // ตามประเภท
   if (note.type === 'sale') {
+    document.getElementById('cust_name').value = note.cust_name || '';
+    document.getElementById('cust_address').value = note.cust_address || '';
+    document.getElementById('cust_phone').value = note.cust_phone || '';
     const box = document.getElementById('sale-items');
     box.innerHTML = '';
     (sale_items || []).forEach(it => {

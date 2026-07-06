@@ -240,6 +240,13 @@ function noteBodyHtml(data) {
     </div><hr style="border-color:var(--border);margin:16px 0">`;
 
   if (note.type === 'sale') {
+    if (note.cust_name || note.cust_address || note.cust_phone) {
+      body += `<div class="detail-grid" style="margin-bottom:12px">
+        <div class="k">ลูกค้า</div><div><b>${escapeHtml(note.cust_name || '-')}</b></div>
+        ${note.cust_address ? `<div class="k">ที่อยู่</div><div>${escapeHtml(note.cust_address)}</div>` : ''}
+        ${note.cust_phone ? `<div class="k">เบอร์ติดต่อ</div><div>${escapeHtml(note.cust_phone)}</div>` : ''}
+      </div>`;
+    }
     body += `<table style="margin-bottom:12px"><thead><tr>
         <th>รหัส</th><th>สินค้า</th><th>สี</th><th style="text-align:right">จำนวน</th>
         <th style="text-align:right">ราคา</th><th style="text-align:right">ส่วนลด</th><th style="text-align:right">รวม</th>

@@ -34,19 +34,38 @@ const REPORT = {
   exportCSV() {
     const rows = REPORT.filtered || [];
     if (!rows.length) return toast('ไม่มีข้อมูลให้ export', 'warning');
-    let headers, mapper;
-    if (REPORT_TYPE === 'sale') {
-      headers = ['วันที่โน๊ต', 'ร้าน', 'ช่องทาง', 'เลขคำสั่งซื้อ', 'ลูกค้า', 'ส่วนลดรวม', 'ค่าจัดส่ง', 'ยอดที่ต้องชำระ', 'ผู้บันทึก', 'วันที่บันทึก'];
-      mapper = n => [fmtDate(n.date_noted), n.store, n.channel, n.order_no, n.customer, n.discount_total, n.shipping_fee, n.grand_total, n.created_by_name, fmtDateTime(n.created_at)];
-    } else if (REPORT_TYPE === 'cancel') {
-      headers = ['วันที่โน๊ต', 'ร้าน', 'ช่องทาง', 'เลขคำสั่งซื้อ', 'สาเหตุ', 'สถานะการส่งคืน', 'สถานะสินค้าที่คืน', 'คลังที่รับเข้า', 'ผู้บันทึก', 'วันที่บันทึก'];
-      mapper = n => [fmtDate(n.date_noted), n.store, n.channel, n.order_no, n.cancel_reason, n.cancel_status, n.cancel_item_status, n.cancel_warehouse, n.created_by_name, fmtDateTime(n.created_at)];
-    } else {
-      headers = ['วันที่โน๊ต', 'ร้าน', 'ช่องทาง', 'เลขคำสั่งซื้อ', 'ค่าเปลี่ยน', 'หมายเหตุ', 'ผู้บันทึก', 'วันที่บันทึก'];
-      mapper = n => [fmtDate(n.date_noted), n.store, n.channel, n.order_no, n.exchange_fee, n.remark, n.created_by_name, fmtDateTime(n.created_at)];
-    }
     const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-    const csv = '﻿' + [headers.map(esc).join(','), ...rows.map(n => mapper(n).map(esc).join(','))].join('\r\n');
+    const isGift = it => (it.is_gift === true || it.is_gift === 'TRUE' || it.is_gift === 'true');
+    const lines = [];
+
+    if (REPORT_TYPE === 'sale') {
+      // รายงานขาย: แยกรายสินค้า 1 แถว/ชิ้น + หัวรายงาน + เฉลี่ยค่าส่ง
+      const store = document.getElementById('rp-store').value || 'ทั้งหมด';
+      const from = document.getElementById('rp-from').value, to = document.getElementById('rp-to').value;
+      lines.push(esc(`รายงานคำสั่งซื้อของแบรนด์ ${store} · ดึงตั้งแต่วันที่ ${from ? fmtDate(from) : '-'} ถึง ${to ? fmtDate(to) : '-'}`));
+      lines.push(['รหัสออเดอร์', 'วันที่', 'ช่องทางขาย', 'รหัสสินค้า', 'รายละเอียดการสั่งซื้อ', 'จำนวน', 'ราคาเต็ม', 'ส่วนลด', 'ค่าจัดส่ง', 'ยอดชำระ', 'ชื่อ', 'เบอร์โทร', 'ที่อยู่'].map(esc).join(','));
+      rows.forEach(n => {
+        const items = (n.sale_items || []).filter(it => !isGift(it));
+        if (!items.length) return;
+        const ship = +n.shipping_fee || 0;
+        const per = Math.floor((ship / items.length) * 100) / 100;   // เฉลี่ยต่อชิ้น (ปัดลง)
+        items.forEach((it, idx) => {
+          const qty = +it.qty || 0, price = +it.price || 0, disc = +it.discount || 0;
+          const shipShare = (idx === items.length - 1) ? +(ship - per * (items.length - 1)).toFixed(2) : per;
+          const pay = +(Math.max(0, qty * price - disc) + shipShare).toFixed(2);
+          const detail = (it.name || '') + (it.color ? ' : ' + it.color : '');
+          lines.push([n.order_no, fmtDate(n.purchase_date), n.channel, it.code, detail, qty, price, disc, shipShare, pay, n.cust_name, n.cust_phone, n.cust_address].map(esc).join(','));
+        });
+      });
+    } else if (REPORT_TYPE === 'cancel') {
+      lines.push(['วันที่โน๊ต', 'ร้าน', 'ช่องทาง', 'เลขคำสั่งซื้อ', 'สาเหตุ', 'สถานะการส่งคืน', 'สถานะสินค้าที่คืน', 'คลังที่รับเข้า', 'ผู้บันทึก', 'วันที่บันทึก'].map(esc).join(','));
+      rows.forEach(n => lines.push([fmtDate(n.date_noted), n.store, n.channel, n.order_no, n.cancel_reason, n.cancel_status, n.cancel_item_status, n.cancel_warehouse, n.created_by_name, fmtDateTime(n.created_at)].map(esc).join(',')));
+    } else {
+      lines.push(['วันที่โน๊ต', 'ร้าน', 'ช่องทาง', 'เลขคำสั่งซื้อ', 'ค่าเปลี่ยน', 'หมายเหตุ', 'ผู้บันทึก', 'วันที่บันทึก'].map(esc).join(','));
+      rows.forEach(n => lines.push([fmtDate(n.date_noted), n.store, n.channel, n.order_no, n.exchange_fee, n.remark, n.created_by_name, fmtDateTime(n.created_at)].map(esc).join(',')));
+    }
+
+    const csv = '﻿' + lines.join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const names = { sale: 'รายงานขาย', cancel: 'รายงานยกเลิก', exchange: 'รายงานเปลี่ยนสินค้า' };
@@ -59,7 +78,7 @@ const REPORT = {
   },
 
   async load() {
-    const res = await API.listNotes({ type: REPORT_TYPE, limit: 500 });
+    const res = await API.listNotes({ type: REPORT_TYPE, limit: 500, with_items: REPORT_TYPE === 'sale' ? '1' : '' });
     REPORT.items = res.success ? (res.data || []) : [];
     REPORT.render();
   },
