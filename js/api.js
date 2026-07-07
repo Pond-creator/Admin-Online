@@ -76,6 +76,7 @@ const API = {
   login:          (username, password) => apiCall('login', { username, password }),
   getMeta:        () => apiCall('getMeta'),
   getProduct:     (code) => apiCall('getProduct', { code }, { silent: true }),
+  getNextOrderNo: (store) => apiCall('getNextOrderNo', { store }, { silent: true }),
   searchProducts: (q) => apiCall('searchProducts', { q }, { silent: true }),
   saveNote:       (data) => apiCall('saveNote', data),
   updateNote:     (data) => apiCall('updateNote', data),

@@ -23,6 +23,25 @@ let fpDateNoted, fpPurchase;  // instance ปฏิทิน
 
 document.addEventListener('DOMContentLoaded', init);
 
+// ช่องทางที่ไม่มีเลขคำสั่งซื้อจริง → รันเลขให้อัตโนมัติ (ปี/เดือน/ลำดับ)
+const AUTO_ORDERNO_CHANNELS = ['Facebook', 'Line', 'Walk-in', 'Website', 'อื่นๆ'];
+function isAutoOrderChannel(ch) { return AUTO_ORDERNO_CHANNELS.includes(ch); }
+
+// ล็อก/รันเลขคำสั่งซื้ออัตโนมัติ ตามร้าน+ช่องทางที่เลือก
+async function updateOrderNoLock() {
+  const store = document.getElementById('store').value;
+  const channel = document.getElementById('channel').value;
+  const orderEl = document.getElementById('order_no');
+  if (!store || !isAutoOrderChannel(channel)) {
+    orderEl.readOnly = false;
+    return;
+  }
+  orderEl.readOnly = true;
+  orderEl.value = 'กำลังสร้างเลข...';
+  const res = await API.getNextOrderNo(store);
+  orderEl.value = res.success ? res.order_no : '';
+}
+
 // ตัวเลือกปฏิทิน วัน/เดือน/ปี (เก็บค่าเบื้องหลังเป็น Y-m-d)
 function fpBaseOpts() {
   return {
@@ -69,7 +88,9 @@ async function init() {
   document.getElementById('channel').addEventListener('change', e => {
     document.getElementById('channel-other-group').style.display =
       (e.target.value === 'อื่นๆ') ? '' : 'none';
+    updateOrderNoLock();
   });
+  document.getElementById('store').addEventListener('change', updateOrderNoLock);
 
   // คลิกช่องตัวเลข → เลือกทั้งหมดให้ พิมพ์ทับได้เลยไม่ต้องลบ 0
   document.addEventListener('focusin', e => {
@@ -543,6 +564,7 @@ async function submitNote(e) {
     store: document.getElementById('store').value,
     channel,
     order_no: document.getElementById('order_no').value.trim(),
+    is_auto_order: !editId && isAutoOrderChannel(channel),   // ให้ server รันเลขจริงตอนบันทึก (กันชนกัน) — เฉพาะสร้างใหม่
     purchase_date: document.getElementById('purchase_date').value,
     remark: document.getElementById('remark').value.trim(),
     images
@@ -740,6 +762,8 @@ async function loadForEdit(id) {
     document.getElementById('channel-other-group').style.display = '';
     document.getElementById('channel_other').value = note.channel;
   }
+  // ล็อกช่องเลขคำสั่งซื้อ (แค่แสดงล็อก ไม่รันเลขใหม่ — เลขเดิมคงตามที่บันทึกไว้)
+  document.getElementById('order_no').readOnly = isAutoOrderChannel(chSel.value);
 
   // ตามประเภท
   if (note.type === 'sale') {
