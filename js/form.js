@@ -5,7 +5,7 @@ if (!Auth.requireAuth()) throw new Error('no auth');
 
 // ค่าสำรอง — ใช้เมื่อดึงจาก server ไม่ได้ (แท็บ/ตัวเลือกจะไม่หาย)
 const DEFAULT_META = {
-  stores: ['FO', 'FA', 'FF', 'GB', 'อื่นๆ'],
+  stores: ['FO', 'FA', 'FF', 'GB'],
   channels: ['Facebook', 'Line', 'Shopee', 'Lazada', 'TikTok', 'Walk-in', 'Website', 'อื่นๆ'],
   types: [
     { key: 'tax', label: 'ออกใบกำกับภาษี' },
@@ -70,6 +70,7 @@ async function init() {
   // บังคับลำดับแท็บให้ใบกำกับมาก่อนเสมอ (ไม่ต้องพึ่งลำดับจาก server)
   const ORDER = ['tax', 'sale', 'exchange', 'cancel'];
   META.types = (META.types || []).slice().sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+  META.stores = (META.stores || []).filter(s => s !== 'อื่นๆ');   // ไม่ให้เลือกร้าน "อื่นๆ"
   fillSelect('store', META.stores);
   fillSelect('channel', META.channels);
 

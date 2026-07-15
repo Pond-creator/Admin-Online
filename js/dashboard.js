@@ -6,7 +6,7 @@ if (!Auth.requireAuth()) throw new Error('no auth');
 const TYPE_LABELS = { sale: 'ออเดอร์ขาย', exchange: 'เปลี่ยนสินค้า', cancel: 'ยกเลิก', tax: 'ออกใบกำกับ' };
 const TYPE_BADGE  = { sale: 'success', exchange: 'info', cancel: 'danger', tax: 'primary' };
 const DEFAULT_META = {
-  stores: ['FO', 'FA', 'FF', 'GB', 'อื่นๆ'],
+  stores: ['FO', 'FA', 'FF', 'GB'],
   channels: ['Facebook', 'Line', 'Shopee', 'Lazada', 'TikTok', 'Walk-in', 'Website', 'อื่นๆ'],
   types: [
     { key: 'tax', label: 'ออกใบกำกับภาษี' }, { key: 'sale', label: 'ออเดอร์ขาย' },
@@ -33,6 +33,7 @@ async function init() {
   if (meta.success && meta.data) META = meta.data;
   const ORDER = ['tax', 'sale', 'exchange', 'cancel'];
   META.types = (META.types || []).slice().sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+  META.stores = (META.stores || []).filter(s => s !== 'อื่นๆ');   // ไม่ให้เลือกร้าน "อื่นๆ"
   addOptions('f-type', META.types.map(t => ({ v: t.key, l: t.label })));
   addOptions('f-store', META.stores.map(s => ({ v: s, l: s })));
   addOptions('f-channel', META.channels.map(c => ({ v: c, l: c })));
