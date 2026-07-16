@@ -56,6 +56,7 @@ const ISSUED = {
       ISSUED.stat('📅', 'ออกเดือนนี้', thisMonth) +
       ISSUED.stat('📎', 'มีไฟล์แนบ', withFiles);
 
+    const isAdmin = Auth.hasRole('admin');
     const tb = document.getElementById('if-rows');
     if (!rows.length) { tb.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">ยังไม่มีใบกำกับที่ออกแล้ว</td></tr>`; return; }
     tb.innerHTML = rows.map(n => {
@@ -70,10 +71,19 @@ const ISSUED = {
         <td>${escapeHtml(n.order_no || '-')}</td>
         <td><span class="badge badge-primary">ใบกำกับ</span></td>
         <td style="white-space:nowrap">${dl}</td>
-        <td><button class="btn btn-secondary btn-sm" data-v="${n.id}">ดู</button></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-secondary btn-sm" data-v="${n.id}">ดู</button>
+          ${isAdmin ? `<button class="btn btn-danger btn-sm" data-del="${n.id}" style="margin-left:4px">🗑 ลบ</button>` : ''}
+        </td>
       </tr>`;
     }).join('');
     tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => viewNote(b.dataset.v));
+    tb.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      if (!confirm('ยืนยันลบใบกำกับนี้? (ลบถาวร + บันทึกใน DeleteLog)')) return;
+      const r = await API.deleteNote(b.dataset.del);
+      if (r.success) { toast('ลบแล้ว', 'success'); ISSUED.load(); }
+      else toast(r.message || 'ลบไม่ได้', 'error');
+    });
   },
 
   stat(icon, label, val) {
