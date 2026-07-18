@@ -24,7 +24,7 @@ const REPORT = {
     flatpickr('#rp-from', fp);
     flatpickr('#rp-to', fp);
 
-    ['rp-store', 'rp-from', 'rp-to'].forEach(id => document.getElementById(id).addEventListener('change', REPORT.render));
+    ['rp-store', 'rp-channel', 'rp-from', 'rp-to'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', REPORT.render); });
     document.getElementById('rp-q').addEventListener('input', REPORT.render);
     const ex = document.getElementById('rp-export');
     if (ex) ex.onclick = () => REPORT.exportCSV();
@@ -80,17 +80,27 @@ const REPORT = {
   async load() {
     const res = await API.listNotes({ type: REPORT_TYPE, limit: 500, with_items: REPORT_TYPE === 'sale' ? '1' : '' });
     REPORT.items = res.success ? (res.data || []) : [];
+    // เติมช่องทางจริงจากข้อมูลลง dropdown (รวมช่องทางที่พิมพ์เอง)
+    const chSel = document.getElementById('rp-channel');
+    if (chSel) {
+      const cur = chSel.value;
+      const chans = [...new Set(REPORT.items.map(n => n.channel).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th'));
+      chSel.innerHTML = `<option value="">ทั้งหมด</option>` + chans.map(c => `<option${c === cur ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+    }
     REPORT.render();
   },
 
   render() {
     const store = document.getElementById('rp-store').value;
+    const chEl = document.getElementById('rp-channel');
+    const channel = chEl ? chEl.value : '';
     const from = document.getElementById('rp-from').value;
     const to = document.getElementById('rp-to').value;
     const q = document.getElementById('rp-q').value.trim().toLowerCase();
 
     let rows = REPORT.items.filter(n => {
       if (store && n.store !== store) return false;
+      if (channel && n.channel !== channel) return false;
       const d = String(n.date_noted || '');
       if (from && d < from) return false;
       if (to && d > to) return false;
