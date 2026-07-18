@@ -33,9 +33,10 @@
       <label class="form-label">ร้านค้า</label>
       <select id="rp-store" class="form-control"><option value="">ทั้งหมด</option></select>
     </div>
-    <div class="form-group">
+    <div class="form-group" style="position:relative">
       <label class="form-label">ช่องทาง</label>
-      <select id="rp-channel" class="form-control"><option value="">ทั้งหมด</option></select>
+      <button type="button" id="rp-channel-btn" class="form-control" style="text-align:left;cursor:pointer;min-width:150px">ทั้งหมด ▾</button>
+      <div id="rp-channel-panel" style="display:none;position:absolute;z-index:60;background:var(--card,#fff);border:1px solid var(--border,#ddd);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:6px;max-height:280px;overflow:auto;min-width:180px;margin-top:4px"></div>
     </div>
     <div class="form-group">
       <label class="form-label">จากวันที่</label>

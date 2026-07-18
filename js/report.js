@@ -5,6 +5,7 @@
 // ============================================================
 const REPORT = {
   items: [],
+  channelSel: new Set(),   // ช่องทางที่ติ๊กไว้ (ว่าง = ทั้งหมด)
 
   init() {
     if (typeof REPORT_TYPE === 'undefined' || !document.getElementById('rp-rows')) return;
@@ -24,8 +25,22 @@ const REPORT = {
     flatpickr('#rp-from', fp);
     flatpickr('#rp-to', fp);
 
-    ['rp-store', 'rp-channel', 'rp-from', 'rp-to'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', REPORT.render); });
+    ['rp-store', 'rp-from', 'rp-to'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', REPORT.render); });
     document.getElementById('rp-q').addEventListener('input', REPORT.render);
+
+    // dropdown ช่องทางแบบเลือกหลายตัว (checkbox)
+    const chBtn = document.getElementById('rp-channel-btn');
+    if (chBtn) {
+      chBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const p = document.getElementById('rp-channel-panel');
+        p.style.display = p.style.display === 'none' ? 'block' : 'none';
+      });
+      document.addEventListener('click', e => {
+        const p = document.getElementById('rp-channel-panel');
+        if (p && p.style.display !== 'none' && !p.contains(e.target) && e.target !== chBtn) p.style.display = 'none';
+      });
+    }
     const ex = document.getElementById('rp-export');
     if (ex) ex.onclick = () => REPORT.exportCSV();
     REPORT.load();
@@ -80,27 +95,37 @@ const REPORT = {
   async load() {
     const res = await API.listNotes({ type: REPORT_TYPE, limit: 500, with_items: REPORT_TYPE === 'sale' ? '1' : '' });
     REPORT.items = res.success ? (res.data || []) : [];
-    // เติมช่องทางจริงจากข้อมูลลง dropdown (รวมช่องทางที่พิมพ์เอง)
-    const chSel = document.getElementById('rp-channel');
-    if (chSel) {
-      const cur = chSel.value;
+    // เติมช่องทางจริงจากข้อมูลลงพาเนล (รวมช่องทางที่พิมพ์เอง) — เลือกได้หลายตัว
+    const chPanel = document.getElementById('rp-channel-panel');
+    if (chPanel) {
       const chans = [...new Set(REPORT.items.map(n => n.channel).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th'));
-      chSel.innerHTML = `<option value="">ทั้งหมด</option>` + chans.map(c => `<option${c === cur ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+      REPORT.channelSel = new Set([...REPORT.channelSel].filter(c => chans.includes(c)));   // ตัดตัวที่ไม่มีแล้ว
+      chPanel.innerHTML = chans.length
+        ? chans.map(c => `<label style="display:flex;align-items:center;gap:8px;padding:5px 6px;cursor:pointer;white-space:nowrap;border-radius:5px"><input type="checkbox" class="rp-ch" value="${escapeHtml(c)}"${REPORT.channelSel.has(c) ? ' checked' : ''}> ${escapeHtml(c)}</label>`).join('')
+        : `<div style="color:var(--text-muted);padding:6px">ไม่มีข้อมูล</div>`;
+      chPanel.querySelectorAll('.rp-ch').forEach(cb => cb.addEventListener('change', () => { REPORT.syncChannel(); REPORT.render(); }));
+      REPORT.syncChannel();
     }
     REPORT.render();
   },
 
+  syncChannel() {
+    const boxes = [...document.querySelectorAll('.rp-ch:checked')].map(c => c.value);
+    REPORT.channelSel = new Set(boxes);
+    const btn = document.getElementById('rp-channel-btn');
+    if (btn) btn.textContent = (boxes.length ? (boxes.length === 1 ? boxes[0] : `เลือก ${boxes.length} ช่องทาง`) : 'ทั้งหมด') + ' ▾';
+  },
+
   render() {
     const store = document.getElementById('rp-store').value;
-    const chEl = document.getElementById('rp-channel');
-    const channel = chEl ? chEl.value : '';
+    const chSel = REPORT.channelSel;
     const from = document.getElementById('rp-from').value;
     const to = document.getElementById('rp-to').value;
     const q = document.getElementById('rp-q').value.trim().toLowerCase();
 
     let rows = REPORT.items.filter(n => {
       if (store && n.store !== store) return false;
-      if (channel && n.channel !== channel) return false;
+      if (chSel && chSel.size && !chSel.has(n.channel)) return false;
       const d = String(n.date_noted || '');
       if (from && d < from) return false;
       if (to && d > to) return false;
