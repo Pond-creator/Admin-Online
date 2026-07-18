@@ -55,7 +55,7 @@ const Auth = {
       create:      ['admin', 'staff'],
       edit:        ['admin', 'staff'],
       delete:      ['admin', 'staff'],
-      issue:       ['admin'],          // ออกเอกสารใบกำกับ
+      issue:       ['admin', 'account'],   // ออกเอกสารใบกำกับ (admin + บัญชี)
       manageUsers: ['admin']
     };
     return (perms[action] || []).includes(role);

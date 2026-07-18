@@ -23,20 +23,24 @@ let fpDateNoted, fpPurchase;  // instance ปฏิทิน
 
 document.addEventListener('DOMContentLoaded', init);
 
-// ช่องทางที่ไม่มีเลขคำสั่งซื้อจริง → รันเลขให้อัตโนมัติ (ปี/เดือน/ลำดับ)
+// ช่องทางที่ไม่มีเลขคำสั่งซื้อจริง → รันเลขให้อัตโนมัติ (เฉพาะออเดอร์ขาย)
 const AUTO_ORDERNO_CHANNELS = ['Facebook', 'Line', 'Walk-in', 'Website', 'อื่นๆ'];
 function isAutoOrderChannel(ch) { return AUTO_ORDERNO_CHANNELS.includes(ch); }
+let orderNoAuto = false;   // เลขในช่องตอนนี้เป็นเลขที่รันอัตโนมัติหรือไม่
 
-// ล็อก/รันเลขคำสั่งซื้ออัตโนมัติ ตามร้าน+ช่องทางที่เลือก
+// ล็อก/รันเลขคำสั่งซื้ออัตโนมัติ — เฉพาะออเดอร์ขาย + ร้าน+ช่องทางที่ไม่มีเลขจริง
 async function updateOrderNoLock() {
   const store = document.getElementById('store').value;
   const channel = document.getElementById('channel').value;
   const orderEl = document.getElementById('order_no');
-  if (!store || !isAutoOrderChannel(channel)) {
+  const shouldAuto = currentType === 'sale' && store && isAutoOrderChannel(channel);
+  if (!shouldAuto) {
     orderEl.readOnly = false;
+    if (orderNoAuto) { orderEl.value = ''; orderNoAuto = false; }   // ล้างเลขที่เคยรันไว้ (ประเภทอื่นกรอกเอง)
     return;
   }
   orderEl.readOnly = true;
+  orderNoAuto = true;
   orderEl.value = 'กำลังสร้างเลข...';
   const res = await API.getNextOrderNo(store);
   orderEl.value = res.success ? res.order_no : '';
@@ -120,7 +124,7 @@ function renderTabs() {
     ).join('');
   if (editId) return;
   document.querySelectorAll('#type-tabs .tab').forEach(btn =>
-    btn.addEventListener('click', () => { currentType = btn.dataset.type; renderTabs(); renderTypeSection(); }));
+    btn.addEventListener('click', () => { currentType = btn.dataset.type; renderTabs(); renderTypeSection(); updateOrderNoLock(); }));
 }
 
 // ====== Type section ======
@@ -763,8 +767,8 @@ async function loadForEdit(id) {
     document.getElementById('channel-other-group').style.display = '';
     document.getElementById('channel_other').value = note.channel;
   }
-  // ล็อกช่องเลขคำสั่งซื้อ (แค่แสดงล็อก ไม่รันเลขใหม่ — เลขเดิมคงตามที่บันทึกไว้)
-  document.getElementById('order_no').readOnly = isAutoOrderChannel(chSel.value);
+  // ล็อกช่องเลขคำสั่งซื้อ เฉพาะออเดอร์ขาย (ไม่รันเลขใหม่ — เลขเดิมคงตามที่บันทึกไว้)
+  document.getElementById('order_no').readOnly = (note.type === 'sale' && isAutoOrderChannel(chSel.value));
 
   // ตามประเภท
   if (note.type === 'sale') {
