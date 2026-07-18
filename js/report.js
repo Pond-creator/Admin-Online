@@ -115,7 +115,11 @@ const REPORT = {
           (n.cancel_item_status ? ` <span class="badge badge-muted">${escapeHtml(n.cancel_item_status)}</span>` : '') +
           (n.cancel_warehouse ? ` <span class="badge badge-primary">📦 ${escapeHtml(n.cancel_warehouse)}</span>` : '');
       } else if (REPORT_TYPE === 'sale') {
-        detail = `<span style="color:var(--primary);font-weight:700">${fmtMoney(n.grand_total)} ฿</span>`;
+        const issued = (n.issued === true || n.issued === 'TRUE' || n.issued === 'true');
+        const taxTag = n.has_tax
+          ? (issued ? ' <span class="badge badge-success">🧾 ออกใบกำกับแล้ว</span>' : ' <span class="badge badge-warning">🧾 รอออกใบกำกับ</span>')
+          : '';
+        detail = `<span style="color:var(--primary);font-weight:700">${fmtMoney(n.grand_total)} ฿</span>${taxTag}`;
       } else {
         detail = (n.exchange_fee && +n.exchange_fee > 0)
           ? `<span style="color:var(--primary);font-weight:600">ค่าเปลี่ยน ${fmtMoney(n.exchange_fee)} ฿</span>` : '-';

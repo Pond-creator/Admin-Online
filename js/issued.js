@@ -69,7 +69,7 @@ const ISSUED = {
         <td>${escapeHtml(n.store)}</td>
         <td>${escapeHtml(n.customer || '-')}</td>
         <td>${escapeHtml(n.order_no || '-')}</td>
-        <td><span class="badge badge-primary">ใบกำกับ</span></td>
+        <td>${n.type === 'sale' ? '<span class="badge badge-success">ขาย + ใบกำกับ</span>' : '<span class="badge badge-primary">ใบกำกับ</span>'}</td>
         <td style="white-space:nowrap">${dl}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-secondary btn-sm" data-v="${n.id}">ดู</button>

@@ -139,6 +139,15 @@ function renderTypeSection() {
     document.getElementById('add-sale').addEventListener('click', () => addSaleItem());
     document.getElementById('add-gift').addEventListener('click', () => addGiftItem());
     document.getElementById('shipping_fee').addEventListener('input', recalcSale);
+    // ต้องการใบกำกับภาษี → โผล่ฟิลด์ + bind
+    document.getElementById('want-tax').addEventListener('change', e => {
+      const box = document.getElementById('sale-tax-box');
+      if (e.target.checked) {
+        box.innerHTML = taxFieldsHtml();
+        box.style.display = '';
+        bindTaxSection();
+      } else { box.innerHTML = ''; box.style.display = 'none'; }
+    });
     addSaleItem();
   } else if (currentType === 'exchange') {
     document.getElementById('add-from').addEventListener('click', () => addExItem('from'));
@@ -151,22 +160,7 @@ function renderTypeSection() {
       document.getElementById('cancel-wh-other').style.display = (e.target.value === 'อื่นๆ') ? '' : 'none');
   } else if (currentType === 'tax') {
     flatpickr('#deadline', fpBaseOpts());   // ปฏิทิน deadline
-    const hasShip = document.getElementById('has-ship');
-    const sameShip = document.getElementById('same-ship');
-    // ระบุที่อยู่ต่าง ↔ ใช้ที่อยู่เดียวกัน (เลือกได้อย่างเดียว)
-    hasShip.addEventListener('change', () => {
-      if (hasShip.checked) sameShip.checked = false;
-      document.getElementById('ship-block').style.display = hasShip.checked ? '' : 'none';
-    });
-    sameShip.addEventListener('change', () => {
-      if (sameShip.checked) { hasShip.checked = false; document.getElementById('ship-block').style.display = 'none'; }
-    });
-
-    // บุคคลธรรมดา / นิติบุคคล
-    document.querySelectorAll('#entity-tabs .tab').forEach(btn =>
-      btn.addEventListener('click', () => setEntity(btn.dataset.entity)));
-
-    // กรอกเลขได้ทั้งสำนักงานใหญ่และสาขา (ไม่ปิดช่อง)
+    bindTaxSection();
   }
 }
 
@@ -209,6 +203,12 @@ function tplSale() {
       </div>
       <div class="total-row grand"><span>ยอดที่ต้องชำระ</span><span id="t-grand">0.00</span></div>
     </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:15px">
+      <input type="checkbox" id="want-tax"> <span>🧾 ลูกค้าต้องการใบกำกับภาษี (กรอกข้อมูลไว้เลย)</span>
+    </label>
+    <div id="sale-tax-box" style="display:none;margin-top:14px"></div>
   </div>`;
 }
 
@@ -434,12 +434,9 @@ function tplCancel() {
   </div>`;
 }
 
-// ---------- TAX ----------
-function tplTax() {
+// ---------- TAX (ฟิลด์ใบกำกับ — ใช้ซ้ำในออเดอร์ขายด้วย) ----------
+function taxFieldsHtml() {
   return `
-  <div class="card" style="margin-bottom:16px">
-    <div class="section-title">ข้อมูลการออกใบกำกับภาษี</div>
-
     <div class="form-group">
       <label class="form-label">ประเภทผู้เสียภาษี</label>
       <div class="tabs" style="margin-bottom:0" id="entity-tabs">
@@ -447,14 +444,8 @@ function tplTax() {
         <button type="button" class="tab" data-entity="company">🏢 นิติบุคคล</button>
       </div>
     </div>
-
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">เลขผู้เสียภาษี</label>
-        <input id="tax_id" class="form-control" placeholder="เช่น 0994000162987"></div>
-      <div class="form-group"><label class="form-label">วันที่ลูกค้าต้องการใช้ (deadline)</label>
-        <input type="text" id="deadline" class="form-control" placeholder="ไม่บังคับ — วว/ดด/ปปปป"></div>
-    </div>
-
+    <div class="form-group"><label class="form-label">เลขผู้เสียภาษี</label>
+      <input id="tax_id" class="form-control" placeholder="เช่น 0994000162987"></div>
     <div class="form-group" id="branch-group" style="display:none">
       <label class="form-label">สำนักงาน / สาขา (นิติบุคคล)</label>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
@@ -465,7 +456,6 @@ function tplTax() {
         <input id="branch_code" class="form-control" style="max-width:150px" placeholder="เลขที่ (ถ้ามี)">
       </div>
     </div>
-
     <div class="grid-2">
       <div class="form-group"><label class="form-label" id="tax_name_label">ชื่อ</label><input id="tax_name" class="form-control"></div>
       <div class="form-group"><label class="form-label" id="tax_surname_label">นามสกุล</label><input id="tax_surname" class="form-control"></div>
@@ -476,7 +466,6 @@ function tplTax() {
       <div class="form-group"><label class="form-label">โทร (ถ้ามี)</label><input id="tax_phone" class="form-control"></div>
       <div class="form-group"><label class="form-label">Email (ถ้ามี)</label><input id="tax_email" class="form-control"></div>
     </div>
-
     <div style="display:flex;gap:22px;flex-wrap:wrap;margin:6px 0 4px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
         <input type="checkbox" id="same-ship"> <span>ใช้ที่อยู่จัดส่งเดียวกับใบกำกับ</span>
@@ -494,8 +483,92 @@ function tplTax() {
         <textarea id="ship_address" class="form-control" rows="2"></textarea></div>
       <div class="form-group" style="margin-bottom:0"><label class="form-label">โทร</label>
         <input id="ship_phone" class="form-control"></div>
-    </div>
+    </div>`;
+}
+
+function tplTax() {
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-title">ข้อมูลการออกใบกำกับภาษี</div>
+    <div class="form-group" style="max-width:300px"><label class="form-label">วันที่ลูกค้าต้องการใช้ (deadline)</label>
+      <input type="text" id="deadline" class="form-control" placeholder="ไม่บังคับ — วว/ดด/ปปปป"></div>
+    ${taxFieldsHtml()}
   </div>`;
+}
+
+// bind ส่วนใบกำกับ (ใช้ทั้งแท็บใบกำกับ + ในออเดอร์ขาย)
+function bindTaxSection() {
+  const hasShip = document.getElementById('has-ship');
+  const sameShip = document.getElementById('same-ship');
+  hasShip.addEventListener('change', () => {
+    if (hasShip.checked) sameShip.checked = false;
+    document.getElementById('ship-block').style.display = hasShip.checked ? '' : 'none';
+  });
+  sameShip.addEventListener('change', () => {
+    if (sameShip.checked) { hasShip.checked = false; document.getElementById('ship-block').style.display = 'none'; }
+  });
+  document.querySelectorAll('#entity-tabs .tab').forEach(btn =>
+    btn.addEventListener('click', () => setEntity(btn.dataset.entity)));
+  document.querySelectorAll('input[name="branchtype"]').forEach(r =>
+    r.addEventListener('change', () => {
+      document.getElementById('branch_code').disabled = (document.querySelector('input[name="branchtype"]:checked').value !== 'branch');
+    }));
+}
+
+// อ่านข้อมูลใบกำกับจากฟอร์ม → object
+function gatherTax() {
+  const entEl = document.querySelector('#entity-tabs .tab.active');
+  const entity = entEl ? entEl.dataset.entity : 'individual';
+  const tax = {
+    tax_id: val('tax_id'), name: val('tax_name'), surname: val('tax_surname'),
+    address: val('tax_address'), phone: val('tax_phone'), email: val('tax_email'),
+    entity_type: entity, branch: ''
+  };
+  if (entity === 'company') {
+    const bt = (document.querySelector('input[name="branchtype"]:checked') || {}).value || 'head';
+    const code = val('branch_code');
+    tax.branch = (bt === 'branch') ? ('สาขาที่ ' + (code || '-')) : ('สำนักงานใหญ่' + (code ? ' ' + code : ''));
+  }
+  if (document.getElementById('same-ship').checked) {
+    Object.assign(tax, { ship_name: tax.name, ship_surname: tax.surname, ship_address: tax.address, ship_phone: tax.phone });
+  } else if (document.getElementById('has-ship').checked) {
+    Object.assign(tax, { ship_name: val('ship_name'), ship_surname: val('ship_surname'), ship_address: val('ship_address'), ship_phone: val('ship_phone') });
+  }
+  return tax;
+}
+
+// เติมข้อมูลใบกำกับลงฟอร์ม (ตอนแก้ไข)
+function fillTax(tax) {
+  setEntity(tax.entity_type === 'company' ? 'company' : 'individual');
+  if (tax.entity_type === 'company') {
+    const b = tax.branch || '';
+    if (b.indexOf('สาขาที่') === 0) {
+      const r = document.querySelector('input[name="branchtype"][value="branch"]');
+      if (r) r.checked = true;
+      document.getElementById('branch_code').value = b.replace(/^สาขาที่\s*/, '').replace(/^-$/, '');
+    } else if (b.indexOf('สำนักงานใหญ่') === 0) {
+      document.getElementById('branch_code').value = b.replace(/^สำนักงานใหญ่\s*/, '');
+    }
+  }
+  document.getElementById('tax_id').value = tax.tax_id || '';
+  document.getElementById('tax_name').value = tax.name || '';
+  document.getElementById('tax_surname').value = tax.surname || '';
+  document.getElementById('tax_address').value = tax.address || '';
+  document.getElementById('tax_phone').value = tax.phone || '';
+  document.getElementById('tax_email').value = tax.email || '';
+  if (tax.ship_address || tax.ship_name) {
+    const sameAsInvoice = (tax.ship_address === tax.address && tax.ship_name === tax.name);
+    if (sameAsInvoice) {
+      document.getElementById('same-ship').checked = true;
+    } else {
+      document.getElementById('has-ship').checked = true;
+      document.getElementById('ship-block').style.display = '';
+      document.getElementById('ship_name').value = tax.ship_name || '';
+      document.getElementById('ship_surname').value = tax.ship_surname || '';
+      document.getElementById('ship_address').value = tax.ship_address || '';
+      document.getElementById('ship_phone').value = tax.ship_phone || '';
+    }
+  }
 }
 
 // ====== Product lookup ======
@@ -622,6 +695,11 @@ async function submitNote(e) {
     payload.shipping_fee = ship;
     payload.discount_total = regDisc + giftVal;       // รวมส่วนลด = ส่วนลดสินค้า + มูลค่าของแถม
     payload.grand_total = regAfterDisc + ship;        // ยอดชำระ = สินค้าหลังลด + ค่าส่ง (ของแถมฟรี)
+    // ลูกค้าต้องการใบกำกับ → เก็บข้อมูลใบกำกับไปด้วย
+    if (document.getElementById('want-tax').checked) {
+      payload.tax = gatherTax();
+      if (!payload.tax.tax_id && !payload.tax.name) return toast('เลือกออกใบกำกับ — กรุณากรอกข้อมูลผู้เสียภาษี', 'warning');
+    }
 
   } else if (currentType === 'exchange') {
     payload.from_items = gatherEx('ex-from');
@@ -648,33 +726,8 @@ async function submitNote(e) {
     payload.cancel_warehouse = wh;
 
   } else if (currentType === 'tax') {
-    const entity = (document.querySelector('#entity-tabs .tab.active') || {}).dataset ?
-      document.querySelector('#entity-tabs .tab.active').dataset.entity : 'individual';
     payload.deadline = val('deadline');   // วันที่ลูกค้าต้องการใช้ (ไม่บังคับ)
-    payload.tax = {
-      tax_id: val('tax_id'), name: val('tax_name'), surname: val('tax_surname'),
-      address: val('tax_address'), phone: val('tax_phone'), email: val('tax_email'),
-      entity_type: entity, branch: ''
-    };
-    if (entity === 'company') {
-      const bt = (document.querySelector('input[name="branchtype"]:checked') || {}).value || 'head';
-      const code = val('branch_code');
-      payload.tax.branch = (bt === 'branch')
-        ? ('สาขาที่ ' + (code || '-'))
-        : ('สำนักงานใหญ่' + (code ? ' ' + code : ''));
-    }
-    if (document.getElementById('same-ship').checked) {
-      // ใช้ที่อยู่เดียวกับใบกำกับ → คัดลอกตอนบันทึก (ไม่ต้องโชว์)
-      Object.assign(payload.tax, {
-        ship_name: payload.tax.name, ship_surname: payload.tax.surname,
-        ship_address: payload.tax.address, ship_phone: payload.tax.phone
-      });
-    } else if (document.getElementById('has-ship').checked) {
-      Object.assign(payload.tax, {
-        ship_name: val('ship_name'), ship_surname: val('ship_surname'),
-        ship_address: val('ship_address'), ship_phone: val('ship_phone')
-      });
-    }
+    payload.tax = gatherTax();
     if (!payload.tax.tax_id && !payload.tax.name) return toast('กรุณากรอกข้อมูลผู้เสียภาษี', 'warning');
   }
 
@@ -790,6 +843,13 @@ async function loadForEdit(id) {
     if (!box.querySelector('[data-sale-item]')) addSaleItem();
     document.getElementById('shipping_fee').value = note.shipping_fee || 0;
     recalcSale();
+    // ถ้าออเดอร์นี้มีข้อมูลใบกำกับ → ติ๊ก + เติมข้อมูล
+    if (tax && (tax.tax_id || tax.name)) {
+      document.getElementById('want-tax').checked = true;
+      const tbox = document.getElementById('sale-tax-box');
+      tbox.innerHTML = taxFieldsHtml(); tbox.style.display = ''; bindTaxSection();
+      fillTax(tax);
+    }
 
   } else if (note.type === 'exchange') {
     ['ex-from', 'ex-to'].forEach(bid => document.getElementById(bid).innerHTML = '');
@@ -825,36 +885,7 @@ async function loadForEdit(id) {
 
   } else if (note.type === 'tax' && tax) {
     if (note.deadline) { const fp = document.querySelector('#deadline')._flatpickr; if (fp) fp.setDate(note.deadline, true); }
-    setEntity(tax.entity_type === 'company' ? 'company' : 'individual');
-    if (tax.entity_type === 'company') {
-      const b = tax.branch || '';
-      if (b.indexOf('สาขาที่') === 0) {
-        const r = document.querySelector('input[name="branchtype"][value="branch"]');
-        if (r) r.checked = true;
-        document.getElementById('branch_code').value = b.replace(/^สาขาที่\s*/, '').replace(/^-$/, '');
-      } else if (b.indexOf('สำนักงานใหญ่') === 0) {
-        document.getElementById('branch_code').value = b.replace(/^สำนักงานใหญ่\s*/, '');
-      }
-    }
-    document.getElementById('tax_id').value = tax.tax_id || '';
-    document.getElementById('tax_name').value = tax.name || '';
-    document.getElementById('tax_surname').value = tax.surname || '';
-    document.getElementById('tax_address').value = tax.address || '';
-    document.getElementById('tax_phone').value = tax.phone || '';
-    document.getElementById('tax_email').value = tax.email || '';
-    if (tax.ship_address || tax.ship_name) {
-      const sameAsInvoice = (tax.ship_address === tax.address && tax.ship_name === tax.name);
-      if (sameAsInvoice) {
-        document.getElementById('same-ship').checked = true;
-      } else {
-        document.getElementById('has-ship').checked = true;
-        document.getElementById('ship-block').style.display = '';
-        document.getElementById('ship_name').value = tax.ship_name || '';
-        document.getElementById('ship_surname').value = tax.ship_surname || '';
-        document.getElementById('ship_address').value = tax.ship_address || '';
-        document.getElementById('ship_phone').value = tax.ship_phone || '';
-      }
-    }
+    fillTax(tax);
   }
 
   // รูปเดิม

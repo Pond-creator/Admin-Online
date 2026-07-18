@@ -194,9 +194,10 @@ async function viewNote(id) {
   const { note } = res.data;
   const body = noteBodyHtml(res.data);
 
-  const isTax = note.type === 'tax';
   const isIssued = (note.issued === true || note.issued === 'TRUE' || note.issued === 'true');
-  const canIssue = isTax && !isIssued && Auth.can('issue');
+  // ออกเอกสารได้: ใบกำกับ (tax) หรือ ออเดอร์ขายที่มีข้อมูลใบกำกับ
+  const hasTaxInfo = (note.type === 'tax') || (note.type === 'sale' && res.data.tax);
+  const canIssue = hasTaxInfo && !isIssued && Auth.can('issue');
 
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-backdrop" id="mb">
@@ -288,20 +289,12 @@ function noteBodyHtml(data) {
       <div class="k">คลังที่รับเข้า</div><div>${escapeHtml(note.cancel_warehouse || '-')}</div>
     </div>`;
   } else if (note.type === 'tax' && tax) {
-    body += `<div class="detail-grid">
-      <div class="k">ประเภท</div><div>${tax.entity_type === 'company' ? 'นิติบุคคล' : 'บุคคลธรรมดา'}${tax.branch ? ' · ' + escapeHtml(tax.branch) : ''}</div>
-      <div class="k">เลขผู้เสียภาษี</div><div>${escapeHtml(tax.tax_id)}</div>
-      <div class="k">${tax.entity_type === 'company' ? 'ชื่อบริษัท' : 'ชื่อ-สกุล'}</div><div>${escapeHtml((tax.name || '') + ' ' + (tax.surname || ''))}</div>
-      <div class="k">ที่อยู่</div><div>${escapeHtml(tax.address)}</div>
-      <div class="k">โทร</div><div>${escapeHtml(tax.phone || '-')}</div>
-      <div class="k">Email</div><div>${escapeHtml(tax.email || '-')}</div>`;
-    if (tax.ship_address) {
-      body += `<div class="k" style="grid-column:1/3;color:var(--primary);margin-top:8px">ที่อยู่จัดส่งใบกำกับ</div>
-        <div class="k">ชื่อ-สกุล</div><div>${escapeHtml((tax.ship_name || '') + ' ' + (tax.ship_surname || ''))}</div>
-        <div class="k">ที่อยู่</div><div>${escapeHtml(tax.ship_address)}</div>
-        <div class="k">โทร</div><div>${escapeHtml(tax.ship_phone || '-')}</div>`;
-    }
-    body += `</div>`;
+    body += taxDetailHtml(tax);
+  }
+
+  // ออเดอร์ขายที่พ่วงใบกำกับ → แสดงข้อมูลใบกำกับด้วย
+  if (note.type === 'sale' && tax) {
+    body += `<hr style="border-color:var(--border);margin:16px 0"><div class="k" style="color:var(--primary);font-weight:600;margin-bottom:8px">🧾 ข้อมูลใบกำกับภาษี</div>` + taxDetailHtml(tax);
   }
 
   if (note.remark) body += `<div style="margin-top:14px"><div class="k" style="color:var(--text-muted);font-size:12px">หมายเหตุ</div>${escapeHtml(note.remark)}</div>`;
@@ -321,6 +314,23 @@ function noteBodyHtml(data) {
   if (note.issued_at) body += `<div style="margin-top:8px;font-size:12px;color:var(--success)">✅ ออกเอกสารแล้ว · ${fmtDateTime(note.issued_at)}</div>`;
 
   return body;
+}
+
+function taxDetailHtml(tax) {
+  let h = `<div class="detail-grid">
+      <div class="k">ประเภท</div><div>${tax.entity_type === 'company' ? 'นิติบุคคล' : 'บุคคลธรรมดา'}${tax.branch ? ' · ' + escapeHtml(tax.branch) : ''}</div>
+      <div class="k">เลขผู้เสียภาษี</div><div>${escapeHtml(tax.tax_id)}</div>
+      <div class="k">${tax.entity_type === 'company' ? 'ชื่อบริษัท' : 'ชื่อ-สกุล'}</div><div>${escapeHtml((tax.name || '') + ' ' + (tax.surname || ''))}</div>
+      <div class="k">ที่อยู่</div><div>${escapeHtml(tax.address)}</div>
+      <div class="k">โทร</div><div>${escapeHtml(tax.phone || '-')}</div>
+      <div class="k">Email</div><div>${escapeHtml(tax.email || '-')}</div>`;
+  if (tax.ship_address) {
+    h += `<div class="k" style="grid-column:1/3;color:var(--primary);margin-top:8px">ที่อยู่จัดส่งใบกำกับ</div>
+        <div class="k">ชื่อ-สกุล</div><div>${escapeHtml((tax.ship_name || '') + ' ' + (tax.ship_surname || ''))}</div>
+        <div class="k">ที่อยู่</div><div>${escapeHtml(tax.ship_address)}</div>
+        <div class="k">โทร</div><div>${escapeHtml(tax.ship_phone || '-')}</div>`;
+  }
+  return h + `</div>`;
 }
 
 function exItems(arr) {
