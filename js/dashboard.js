@@ -135,7 +135,7 @@ function render() {
     return `
     <tr>
       <td>${fmtDate(n.date_noted)}</td>
-      <td><span class="badge badge-${TYPE_BADGE[n.type] || 'muted'}">${TYPE_LABELS[n.type] || n.type}</span></td>
+      <td><span class="badge badge-${TYPE_BADGE[n.type] || 'muted'}">${TYPE_LABELS[n.type] || n.type}</span>${n.type === 'sale' && n.has_tax ? `<div style="margin-top:4px"><span class="badge ${(n.issued === true || n.issued === 'TRUE' || n.issued === 'true') ? 'badge-primary' : 'badge-warning'}">🧾 ${(n.issued === true || n.issued === 'TRUE' || n.issued === 'true') ? 'ออกใบกำกับแล้ว' : 'ขอใบกำกับ'}</span></div>` : ''}</td>
       <td>${escapeHtml(n.store)}</td>
       <td>${escapeHtml(n.channel)}</td>
       <td>${escapeHtml(n.order_no || '-')}${cust}${dl}</td>

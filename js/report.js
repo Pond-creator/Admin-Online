@@ -115,11 +115,7 @@ const REPORT = {
           (n.cancel_item_status ? ` <span class="badge badge-muted">${escapeHtml(n.cancel_item_status)}</span>` : '') +
           (n.cancel_warehouse ? ` <span class="badge badge-primary">📦 ${escapeHtml(n.cancel_warehouse)}</span>` : '');
       } else if (REPORT_TYPE === 'sale') {
-        const issued = (n.issued === true || n.issued === 'TRUE' || n.issued === 'true');
-        const taxTag = n.has_tax
-          ? (issued ? ' <span class="badge badge-success">🧾 ออกใบกำกับแล้ว</span>' : ' <span class="badge badge-warning">🧾 รอออกใบกำกับ</span>')
-          : '';
-        detail = `<span style="color:var(--primary);font-weight:700">${fmtMoney(n.grand_total)} ฿</span>${taxTag}`;
+        detail = `<span style="color:var(--primary);font-weight:700">${fmtMoney(n.grand_total)} ฿</span>`;
       } else {
         detail = (n.exchange_fee && +n.exchange_fee > 0)
           ? `<span style="color:var(--primary);font-weight:600">ค่าเปลี่ยน ${fmtMoney(n.exchange_fee)} ฿</span>` : '-';
@@ -128,7 +124,7 @@ const REPORT = {
         <td>${fmtDate(n.date_noted)}</td>
         <td>${escapeHtml(n.store)}</td>
         <td>${escapeHtml(n.channel)}</td>
-        <td>${escapeHtml(n.order_no || '-')}</td>
+        <td>${escapeHtml(n.order_no || '-')}${REPORT_TYPE === 'sale' && n.has_tax ? `<div style="margin-top:4px"><span class="badge ${(n.issued === true || n.issued === 'TRUE' || n.issued === 'true') ? 'badge-primary' : 'badge-warning'}">🧾 ${(n.issued === true || n.issued === 'TRUE' || n.issued === 'true') ? 'ออกใบกำกับแล้ว' : 'ขอใบกำกับ'}</span></div>` : ''}</td>
         <td>${detail}<div style="font-size:11px;color:var(--text-muted)">โดย ${escapeHtml(n.created_by_name || '-')} · ${fmtDateTime(n.created_at)}</div></td>
         <td><button class="btn btn-secondary btn-sm" data-v="${n.id}">ดู</button></td>
       </tr>`;
