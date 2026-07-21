@@ -350,7 +350,6 @@ function issueModal(data) {
   const files = [];   // ไฟล์ใหม่ที่จะอัปโหลด
   const existing = (note.invoice_files || '').split(',').filter(Boolean);   // ไฟล์เดิมที่จะเก็บไว้
   const wasIssued = (note.issued === true || note.issued === 'TRUE' || note.issued === 'true');
-  const isAdmin = Auth.hasRole('admin');
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-backdrop" id="mb2">
       <div class="modal-card" style="max-width:900px">
@@ -372,7 +371,7 @@ function issueModal(data) {
               <div id="mi-list" style="margin-top:10px"></div>
             </div>
             <button class="btn btn-primary" id="mi-save" style="width:100%">💾 บันทึก</button>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:8px">* ไฟล์เก็บที่โฟลเดอร์ invoice · แนบผิดแก้ไฟล์ใหม่ได้ · ${isAdmin ? 'ลบไฟล์เดิมได้ (admin)' : 'ลบไฟล์เดิม = เฉพาะ admin'}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px">* ไฟล์เก็บที่โฟลเดอร์ invoice · แนบผิดลบไฟล์เดิมแล้วแนบใหม่ได้</div>
           </div>
         </div>
       </div>
@@ -384,8 +383,8 @@ function issueModal(data) {
     el.innerHTML = `<label class="form-label">เอกสารที่แนบไว้แล้ว</label>` + existing.map((u, i) =>
       `<div style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px">
         <a class="btn btn-secondary btn-sm" href="${u}" target="_blank">⬇️ เอกสาร ${i + 1}</a>
-        ${isAdmin ? `<button class="btn btn-danger btn-sm" data-rme="${i}">🗑 ลบ</button>` : ''}</div>`).join('');
-    if (isAdmin) el.querySelectorAll('[data-rme]').forEach(b => b.onclick = () => {
+        <button class="btn btn-danger btn-sm" data-rme="${i}">🗑 ลบ</button></div>`).join('');
+    el.querySelectorAll('[data-rme]').forEach(b => b.onclick = () => {
       if (!confirm('ลบไฟล์เอกสารนี้? (นำออกจากรายการ ต้องกดบันทึกเพื่อยืนยัน)')) return;
       existing.splice(+b.dataset.rme, 1); renderExisting();
     });
