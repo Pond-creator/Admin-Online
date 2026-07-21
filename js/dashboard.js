@@ -197,7 +197,8 @@ async function viewNote(id) {
   const isIssued = (note.issued === true || note.issued === 'TRUE' || note.issued === 'true');
   // ออกเอกสารได้: ใบกำกับ (tax) หรือ ออเดอร์ขายที่มีข้อมูลใบกำกับ
   const hasTaxInfo = (note.type === 'tax') || (note.type === 'sale' && res.data.tax);
-  const canIssue = hasTaxInfo && !isIssued && Auth.can('issue');
+  // admin + บัญชี จัดการเอกสารได้ตลอด (ออก/แก้ไฟล์แม้ออกแล้ว)
+  const canManageDocs = hasTaxInfo && Auth.can('issue');
 
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-backdrop" id="mb">
@@ -210,7 +211,7 @@ async function viewNote(id) {
         <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <h3 style="color:var(--primary)">รายละเอียดโน๊ต</h3>
           <div style="display:flex;gap:8px">
-            ${canIssue ? `<button class="btn btn-success btn-sm" id="m-issue">📄 จัดการออกเอกสาร</button>` : ''}
+            ${canManageDocs ? `<button class="btn btn-success btn-sm" id="m-issue">📄 ${isIssued ? 'แก้ไขเอกสาร' : 'จัดการออกเอกสาร'}</button>` : ''}
             <button class="btn btn-primary btn-sm" id="m-print">🖨️ พิมพ์/PDF</button>
             <button class="btn btn-secondary btn-sm" id="m-close">✕ ปิด</button>
           </div>
@@ -223,7 +224,7 @@ async function viewNote(id) {
   document.getElementById('m-close').addEventListener('click', closeModal);
   document.getElementById('m-print').addEventListener('click', () => window.print());
   document.getElementById('mb').addEventListener('click', e => { if (e.target.id === 'mb') closeModal(); });
-  if (canIssue) document.getElementById('m-issue').addEventListener('click', () => issueModal(res.data));
+  if (canManageDocs) document.getElementById('m-issue').addEventListener('click', () => issueModal(res.data));
 }
 
 // สร้าง HTML เนื้อหารายละเอียดโน๊ต (ใช้ซ้ำทั้งหน้าดู / ออกเอกสาร / รายงานที่ออกแล้ว)
@@ -346,12 +347,15 @@ function exItems(arr) {
 // ====== ออกเอกสารใบกำกับ (ซ้าย=พรีวิว, ขวา=ฟอร์มออกเอกสาร) ======
 function issueModal(data) {
   const note = data.note;
-  const files = [];
+  const files = [];   // ไฟล์ใหม่ที่จะอัปโหลด
+  const existing = (note.invoice_files || '').split(',').filter(Boolean);   // ไฟล์เดิมที่จะเก็บไว้
+  const wasIssued = (note.issued === true || note.issued === 'TRUE' || note.issued === 'true');
+  const isAdmin = Auth.hasRole('admin');
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-backdrop" id="mb2">
       <div class="modal-card" style="max-width:900px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <h3 style="color:var(--primary)">📄 จัดการออกเอกสารใบกำกับภาษี</h3>
+          <h3 style="color:var(--primary)">📄 จัดการเอกสารใบกำกับภาษี</h3>
           <button class="btn btn-secondary btn-sm" id="mi-close">✕ ปิด</button>
         </div>
         <div class="grid-2" style="gap:20px;align-items:start">
@@ -359,19 +363,33 @@ function issueModal(data) {
           <div class="card" style="background:var(--bg-card2)">
             <div class="section-title">ออกเอกสาร</div>
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:16px;font-size:15px">
-              <input type="checkbox" id="mi-issued"> <span>✅ ออกเอกสารแล้ว</span>
+              <input type="checkbox" id="mi-issued"${wasIssued ? ' checked' : ''}> <span>✅ ออกเอกสารแล้ว</span>
             </label>
+            <div id="mi-existing" style="margin-bottom:14px"></div>
             <div class="form-group">
               <label class="form-label">แนบเอกสารตัวจริง (รูป / PDF — หลายไฟล์ได้)</label>
               <input type="file" id="mi-files" class="form-control" accept="image/*,application/pdf" multiple>
               <div id="mi-list" style="margin-top:10px"></div>
             </div>
-            <button class="btn btn-primary" id="mi-save" style="width:100%">💾 บันทึกการออกเอกสาร</button>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:8px">* ไฟล์จะเก็บที่โฟลเดอร์ invoice · เมื่อออกแล้วรายการจะย้ายไปหน้า "ใบกำกับที่ออกแล้ว"</div>
+            <button class="btn btn-primary" id="mi-save" style="width:100%">💾 บันทึก</button>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px">* ไฟล์เก็บที่โฟลเดอร์ invoice · แนบผิดแก้ไฟล์ใหม่ได้ · ${isAdmin ? 'ลบไฟล์เดิมได้ (admin)' : 'ลบไฟล์เดิม = เฉพาะ admin'}</div>
           </div>
         </div>
       </div>
     </div>`;
+
+  const renderExisting = () => {
+    const el = document.getElementById('mi-existing');
+    if (!existing.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<label class="form-label">เอกสารที่แนบไว้แล้ว</label>` + existing.map((u, i) =>
+      `<div style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px">
+        <a class="btn btn-secondary btn-sm" href="${u}" target="_blank">⬇️ เอกสาร ${i + 1}</a>
+        ${isAdmin ? `<button class="btn btn-danger btn-sm" data-rme="${i}">🗑 ลบ</button>` : ''}</div>`).join('');
+    if (isAdmin) el.querySelectorAll('[data-rme]').forEach(b => b.onclick = () => {
+      if (!confirm('ลบไฟล์เอกสารนี้? (นำออกจากรายการ ต้องกดบันทึกเพื่อยืนยัน)')) return;
+      existing.splice(+b.dataset.rme, 1); renderExisting();
+    });
+  };
 
   const renderList = () => {
     const el = document.getElementById('mi-list');
@@ -380,6 +398,7 @@ function issueModal(data) {
         <button class="btn btn-secondary btn-sm" data-rmf="${i}">ลบ</button></div>`).join('');
     el.querySelectorAll('[data-rmf]').forEach(b => b.onclick = () => { files.splice(+b.dataset.rmf, 1); renderList(); });
   };
+  renderExisting();
 
   document.getElementById('mi-close').onclick = closeModal;
   document.getElementById('mb2').onclick = e => { if (e.target.id === 'mb2') closeModal(); };
@@ -393,12 +412,12 @@ function issueModal(data) {
   };
   document.getElementById('mi-save').onclick = async () => {
     const issued = document.getElementById('mi-issued').checked;
-    if (!issued && !files.length) return toast('ติ๊ก "ออกเอกสารแล้ว" หรือแนบไฟล์อย่างน้อย 1 ไฟล์', 'warning');
+    if (!issued && !files.length && !existing.length) return toast('ติ๊ก "ออกเอกสารแล้ว" หรือมีไฟล์อย่างน้อย 1 ไฟล์', 'warning');
     const btn = document.getElementById('mi-save');
     btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...';
-    const res = await API.issueInvoice({ id: note.id, issued, files });
+    const res = await API.issueInvoice({ id: note.id, issued, files, existing });
     if (res.success) { toast(res.message || 'สำเร็จ', 'success'); closeModal(); load(); }
-    else { toast(res.message || 'ไม่สำเร็จ', 'error'); btn.disabled = false; btn.textContent = '💾 บันทึกการออกเอกสาร'; }
+    else { toast(res.message || 'ไม่สำเร็จ', 'error'); btn.disabled = false; btn.textContent = '💾 บันทึก'; }
   };
 }
 
