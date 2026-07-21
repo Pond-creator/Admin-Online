@@ -411,7 +411,8 @@ function issueModal(data) {
   };
   document.getElementById('mi-save').onclick = async () => {
     const issued = document.getElementById('mi-issued').checked;
-    if (!issued && !files.length && !existing.length) return toast('ติ๊ก "ออกเอกสารแล้ว" หรือมีไฟล์อย่างน้อย 1 ไฟล์', 'warning');
+    if (!issued) return toast('กรุณาติ๊ก "ออกเอกสารแล้ว" ก่อนบันทึก', 'warning');
+    if (!files.length && !existing.length) return toast('แนบเอกสารอย่างน้อย 1 ไฟล์', 'warning');
     const btn = document.getElementById('mi-save');
     btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...';
     const res = await API.issueInvoice({ id: note.id, issued, files, existing });
