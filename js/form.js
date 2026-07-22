@@ -513,6 +513,18 @@ function bindTaxSection() {
     r.addEventListener('change', () => {
       document.getElementById('branch_code').disabled = (document.querySelector('input[name="branchtype"]:checked').value !== 'branch');
     }));
+  // เลขผู้เสียภาษี: ตัวเลขเท่านั้น + ไม่เกิน 13 หลัก (กัน 0 นำหน้าหาย → เก็บเป็น string)
+  const ti = document.getElementById('tax_id');
+  if (ti) {
+    ti.setAttribute('inputmode', 'numeric');
+    ti.setAttribute('maxlength', '13');
+    ti.addEventListener('input', () => { ti.value = ti.value.replace(/\D/g, '').slice(0, 13); });
+  }
+}
+
+// ตรวจเลขผู้เสียภาษี: ต้องเป็นตัวเลข 13 หลักพอดี — คืนข้อความ error (ว่าง = ผ่าน)
+function validateTaxId(v) {
+  return /^\d{13}$/.test(String(v || '').trim()) ? '' : 'เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลักพอดี';
 }
 
 // อ่านข้อมูลใบกำกับจากฟอร์ม → object
@@ -699,6 +711,8 @@ async function submitNote(e) {
     if (document.getElementById('want-tax').checked) {
       payload.tax = gatherTax();
       if (!payload.tax.tax_id && !payload.tax.name) return toast('เลือกออกใบกำกับ — กรุณากรอกข้อมูลผู้เสียภาษี', 'warning');
+      const e = validateTaxId(payload.tax.tax_id);
+      if (e) return toast(e, 'warning');
     }
 
   } else if (currentType === 'exchange') {
@@ -729,6 +743,8 @@ async function submitNote(e) {
     payload.deadline = val('deadline');   // วันที่ลูกค้าต้องการใช้ (ไม่บังคับ)
     payload.tax = gatherTax();
     if (!payload.tax.tax_id && !payload.tax.name) return toast('กรุณากรอกข้อมูลผู้เสียภาษี', 'warning');
+    const e = validateTaxId(payload.tax.tax_id);
+    if (e) return toast(e, 'warning');
   }
 
   const btn = document.getElementById('btn-save');

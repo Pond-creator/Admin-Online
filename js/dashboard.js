@@ -362,7 +362,7 @@ function issueModal(data) {
           <div class="card" style="background:var(--bg-card2)">
             <div class="section-title">ออกเอกสาร</div>
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:16px;font-size:15px">
-              <input type="checkbox" id="mi-issued"${wasIssued ? ' checked' : ''}> <span>✅ ออกเอกสารแล้ว</span>
+              <input type="checkbox" id="mi-issued"${wasIssued ? ' checked' : ''}> <span>ออกเอกสารแล้ว</span>
             </label>
             <div id="mi-existing" style="margin-bottom:14px"></div>
             <div class="form-group">
