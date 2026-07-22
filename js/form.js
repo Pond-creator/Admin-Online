@@ -444,7 +444,7 @@ function taxFieldsHtml() {
         <button type="button" class="tab" data-entity="company">🏢 นิติบุคคล</button>
       </div>
     </div>
-    <div class="form-group"><label class="form-label">เลขผู้เสียภาษี</label>
+    <div class="form-group"><label class="form-label">เลขผู้เสียภาษี <span style="color:var(--danger)">*</span> <span style="color:var(--text-muted);font-size:12px">(ตัวเลข 13 หลัก)</span></label>
       <input id="tax_id" class="form-control" placeholder="เช่น 0994000162987"></div>
     <div class="form-group" id="branch-group" style="display:none">
       <label class="form-label">สำนักงาน / สาขา (นิติบุคคล)</label>
