@@ -199,7 +199,7 @@ function tplSale() {
       <div class="total-row"><span>รวมหลังหักส่วนลด</span><span id="t-subtotal">0.00</span></div>
       <div class="total-row" style="align-items:center">
         <span>ค่าจัดส่ง</span>
-        <input type="number" id="shipping_fee" class="form-control" value="0" style="max-width:140px;text-align:right">
+        <input type="number" id="shipping_fee" class="form-control" value="0" min="0" step="0.01" style="max-width:140px;text-align:right">
       </div>
       <div class="total-row grand"><span>ยอดที่ต้องชำระ</span><span id="t-grand">0.00</span></div>
     </div>
@@ -235,9 +235,9 @@ function itemCardSale(no) {
       <div class="form-group"><label class="form-label">จำนวน</label>
         <input type="number" class="form-control" data-qty value="1" min="1"></div>
       <div class="form-group"><label class="form-label">ราคา/ชิ้น</label>
-        <input type="number" class="form-control" data-price value="0" min="0"></div>
+        <input type="number" class="form-control" data-price value="0" min="0" step="0.01"></div>
       <div class="form-group"><label class="form-label">ส่วนลด (บาท)</label>
-        <input type="number" class="form-control" data-discount value="0" min="0"></div>
+        <input type="number" class="form-control" data-discount value="0" min="0" step="0.01"></div>
     </div>
     <div class="item-name-preview" data-linetotal></div>
   </div>`;
@@ -282,7 +282,7 @@ function itemCardGift(no) {
       <div class="form-group"><label class="form-label">จำนวน</label>
         <input type="number" class="form-control" data-qty value="1" min="1"></div>
       <div class="form-group"><label class="form-label">ราคา/ชิ้น</label>
-        <input type="number" class="form-control" data-price value="0" min="0"></div>
+        <input type="number" class="form-control" data-price value="0" min="0" step="0.01"></div>
     </div>
     <div class="item-name-preview" data-giftval style="color:var(--success)">🎁 ของแถม (คิดเป็นส่วนลด)</div>
   </div>`;
@@ -360,7 +360,7 @@ function tplExchange() {
       </label>
       <div id="exchange-fee-box" style="display:none;margin-top:10px;max-width:240px">
         <label class="form-label">ค่าเปลี่ยน (บาท)</label>
-        <input type="number" id="exchange_fee" class="form-control" value="0" min="0">
+        <input type="number" id="exchange_fee" class="form-control" value="0" min="0" step="0.01">
         <div style="font-size:12px;color:var(--danger);margin-top:4px">* ต้องแนบรูป (เช่น สลิปโอนเงิน) เมื่อมีค่าเปลี่ยน</div>
       </div>
     </div>
