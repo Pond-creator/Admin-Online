@@ -31,6 +31,15 @@
   <h2 style="margin-bottom:16px;color:var(--success)">💰 รายงานขาย <span id="rp-count" style="font-size:15px;color:var(--text-muted)">0</span> รายการ · รวมยอด <span id="rp-sum" style="color:var(--primary)">0.00</span> บาท</h2>
   <div class="filters">
     <div class="form-group">
+      <label class="form-label">ช่วงเวลา (โหลด)</label>
+      <select id="rp-period" class="form-control">
+        <option value="2">2 เดือนล่าสุด</option>
+        <option value="6">6 เดือน</option>
+        <option value="12">1 ปี</option>
+        <option value="0">ทั้งหมด</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">ร้านค้า</label>
       <select id="rp-store" class="form-control"><option value="">ทั้งหมด</option></select>
     </div>

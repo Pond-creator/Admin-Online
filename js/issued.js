@@ -23,11 +23,14 @@ const ISSUED = {
 
     ['if-store', 'if-from', 'if-to'].forEach(id => document.getElementById(id).addEventListener('change', ISSUED.render));
     document.getElementById('if-q').addEventListener('input', ISSUED.render);
+    const pEl = document.getElementById('if-period');   // ช่วงเวลา → โหลดใหม่จากเซิร์ฟเวอร์
+    if (pEl) pEl.addEventListener('change', ISSUED.load);
     ISSUED.load();
   },
 
   async load() {
-    const res = await API.listNotes({ only_issued: '1', limit: 500 });
+    const p = (document.getElementById('if-period') || {}).value;   // ช่วงเวลาโหลด (กรองด้วย issued_at)
+    const res = await API.listNotes({ only_issued: '1', date_from: periodDateFrom(p), limit: periodLimit(p) });
     ISSUED.items = res.success ? (res.data || []) : [];
     ISSUED.render();
   },

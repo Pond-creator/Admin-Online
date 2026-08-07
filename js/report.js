@@ -25,6 +25,9 @@ const REPORT = {
     flatpickr('#rp-from', fp);
     flatpickr('#rp-to', fp);
 
+    // ช่วงเวลา → โหลดใหม่จากเซิร์ฟเวอร์
+    const pEl = document.getElementById('rp-period');
+    if (pEl) pEl.addEventListener('change', REPORT.load);
     ['rp-store', 'rp-from', 'rp-to'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', REPORT.render); });
     document.getElementById('rp-q').addEventListener('input', REPORT.render);
 
@@ -93,7 +96,8 @@ const REPORT = {
   },
 
   async load() {
-    const res = await API.listNotes({ type: REPORT_TYPE, limit: 500, with_items: REPORT_TYPE === 'sale' ? '1' : '' });
+    const p = (document.getElementById('rp-period') || {}).value;   // ช่วงเวลาโหลด (เดือน)
+    const res = await API.listNotes({ type: REPORT_TYPE, date_from: periodDateFrom(p), limit: periodLimit(p), with_items: REPORT_TYPE === 'sale' ? '1' : '' });
     REPORT.items = res.success ? (res.data || []) : [];
     // เติมช่องทางจริงจากข้อมูลลงพาเนล (รวมช่องทางที่พิมพ์เอง) — เลือกได้หลายตัว
     const chPanel = document.getElementById('rp-channel-panel');

@@ -5,6 +5,17 @@
 // <<< URL ของ Web App หลัง Deploy GAS >>>
 const API_URL = 'https://script.google.com/macros/s/AKfycby5NofUechoY7L8JtCGkBjB-9YjkTanH8klDzfTRRryJzdin0t17fNWsSYNJrYrPZZiKA/exec';
 
+// คืนวันแรก (yyyy-mm-dd) เมื่อ N เดือนก่อน (รวมเดือนปัจจุบัน) สำหรับโหลดตามช่วงเวลา — 0/ว่าง = ทั้งหมด
+function periodDateFrom(months) {
+  months = Number(months) || 0;
+  if (!months) return '';
+  const d = new Date();
+  const from = new Date(d.getFullYear(), d.getMonth() - (months - 1), 1);
+  return from.getFullYear() + '-' + String(from.getMonth() + 1).padStart(2, '0') + '-01';
+}
+// limit ที่เหมาะกับช่วง — "ทั้งหมด" ใช้เพดานสูง กันข้อมูลหลุด
+function periodLimit(months) { return (Number(months) || 0) ? 1000 : 100000; }
+
 // ====== Global loading overlay (วงหมุน + เลขนิ่งตรงกลาง) ======
 let _loaderEl = null, _loaderTimer = null, _loaderPct = 0, _loaderCount = 0;
 function _ensureLoader() {

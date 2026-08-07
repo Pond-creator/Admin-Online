@@ -45,6 +45,8 @@ async function init() {
   flatpickr('#f-from', fpOpts);
   flatpickr('#f-to', fpOpts);
 
+  // ช่วงเวลา → โหลดใหม่จากเซิร์ฟเวอร์ (เปลี่ยนปริมาณข้อมูลที่ดึงมา)
+  document.getElementById('f-period').addEventListener('change', load);
   // ทุกตัวกรอง → กรองสดทันที (client-side) + กลับไปหน้าแรก
   ['f-type', 'f-store', 'f-channel'].forEach(id =>
     document.getElementById(id).addEventListener('change', rerender0));
@@ -80,7 +82,8 @@ function clearFilters() {
 async function load() {
   const tbody = document.getElementById('rows');
   tbody.innerHTML = row8('กำลังโหลด...');
-  const res = await API.listNotes({ limit: 500 });
+  const p = (document.getElementById('f-period') || {}).value;   // ช่วงเวลาโหลด (เดือน)
+  const res = await API.listNotes({ date_from: periodDateFrom(p), limit: periodLimit(p) });
   if (!res.success) { tbody.innerHTML = row8('โหลดข้อมูลไม่ได้: ' + res.message); return; }
   ALL = res.data || [];
   dashPage = 0;
