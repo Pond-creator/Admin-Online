@@ -173,7 +173,8 @@ function warehouseBadge(wh) {
   wh = String(wh || '').trim();
   if (!wh) return '';
   var fixed = { '01': '#1fa463', '15': '#f0932b', '99': '#e02424' };
-  var color = fixed[wh];
+  var digits = (wh.match(/\d+/) || [''])[0];   // ดึงเลขคลังจาก "คลัง 01" → "01"
+  var color = fixed[digits];
   if (!color) {
     var h = 0;
     for (var i = 0; i < wh.length; i++) h = (h * 31 + wh.charCodeAt(i)) >>> 0;
