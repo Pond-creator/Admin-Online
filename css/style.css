@@ -1073,6 +1073,13 @@ td:hover .btn-img-quick,
 }
 .app-header nav a:hover { color: var(--text-primary); background: var(--bg-card2); }
 .app-header nav a.active { color: var(--primary); border-color: var(--border); background: var(--bg-card2); }
+/* ปุ่มสร้างโน๊ต — เด่น แยกจากเมนูรายงาน (action เขียนข้อมูล) */
+.app-header nav a.nav-create {
+  color: var(--danger); border-color: var(--danger); font-weight: 700;
+}
+.app-header nav a.nav-create:hover { color: #fff; background: var(--danger); }
+.app-header nav a.nav-create.active { color: #fff; background: var(--danger); border-color: var(--danger); }
+.app-header nav .nav-sep { width: 1px; align-self: stretch; margin: 4px 6px; background: var(--border); }
 .app-header .spacer { flex: 1; }
 .app-header .user-box { font-size: 13px; color: var(--text-secondary); }
 .app-header .user-box b { color: var(--text-primary); }

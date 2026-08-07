@@ -148,7 +148,7 @@ const REPORT = {
         detail = `${escapeHtml(n.cancel_reason || '-')}` +
           (n.cancel_status ? ` <span class="badge badge-muted">${escapeHtml(n.cancel_status)}</span>` : '') +
           (n.cancel_item_status ? ` <span class="badge badge-muted">${escapeHtml(n.cancel_item_status)}</span>` : '') +
-          (n.cancel_warehouse ? ` <span class="badge badge-primary">📦 ${escapeHtml(n.cancel_warehouse)}</span>` : '');
+          warehouseBadge(n.cancel_warehouse);
       } else if (REPORT_TYPE === 'sale') {
         detail = `<span style="color:var(--primary);font-weight:700">${fmtMoney(n.grand_total)} ฿</span>`;
       } else {
@@ -167,6 +167,21 @@ const REPORT = {
     tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => viewNote(b.dataset.v));
   }
 };
+
+// badge คลังแบบมีสี — 01 เขียว / 15 ส้ม / 99 แดง · คลังอื่นสุ่มสีคงที่ (เลี่ยง 3 สีนี้)
+function warehouseBadge(wh) {
+  wh = String(wh || '').trim();
+  if (!wh) return '';
+  var fixed = { '01': '#1fa463', '15': '#f0932b', '99': '#e02424' };
+  var color = fixed[wh];
+  if (!color) {
+    var h = 0;
+    for (var i = 0; i < wh.length; i++) h = (h * 31 + wh.charCodeAt(i)) >>> 0;
+    var hue = 200 + (h % 160);   // 200-359 (ฟ้า/ม่วง/ชมพู) เลี่ยงโซนแดง-ส้ม-เขียว
+    color = 'hsl(' + hue + ',60%,45%)';
+  }
+  return ' <span class="badge" style="background:' + color + ';color:#fff">📦 ' + escapeHtml(wh) + '</span>';
+}
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => REPORT.init());
 else REPORT.init();
