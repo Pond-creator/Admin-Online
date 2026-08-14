@@ -301,7 +301,7 @@ function noteBodyHtml(data) {
     body += `<hr style="border-color:var(--border);margin:16px 0"><div class="k" style="color:var(--primary);font-weight:600;margin-bottom:8px">🧾 ข้อมูลใบกำกับภาษี</div>` + taxDetailHtml(tax);
   }
 
-  if (note.remark) body += `<div style="margin-top:14px"><div class="k" style="color:var(--text-muted);font-size:12px">หมายเหตุ</div>${escapeHtml(note.remark)}</div>`;
+  if (note.remark) body += `<div style="margin-top:14px"><div class="k" style="color:var(--text-muted);font-size:12px">หมายเหตุ</div><div style="white-space:pre-wrap;line-height:1.55">${escapeHtml(note.remark)}</div></div>`;
 
   const imgs = (note.images || '').split(',').filter(Boolean);
   if (imgs.length) {

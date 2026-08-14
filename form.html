@@ -69,8 +69,10 @@
     <!-- หมายเหตุ + รูป -->
     <div class="card" style="margin-bottom:16px">
       <div class="form-group">
-        <label class="form-label">หมายเหตุ</label>
-        <textarea id="remark" class="form-control" rows="2" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+        <label class="form-label" style="display:flex;align-items:center;gap:10px">หมายเหตุ
+          <button type="button" class="btn btn-secondary btn-sm" onclick="var t=document.getElementById('remark');var big=t.style.height==='300px';t.style.height=big?'':'300px';this.textContent=big?'⛶ ขยาย':'▲ ย่อ';">⛶ ขยาย</button>
+        </label>
+        <textarea id="remark" class="form-control" rows="4" style="resize:vertical;min-height:96px;line-height:1.55" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)&#10;พิมพ์ขึ้นบรรทัดใหม่ / เว้นวรรคได้ตามต้องการ — ระบบเก็บรูปแบบให้เป๊ะ"></textarea>
       </div>
       <div class="form-group" style="margin-bottom:0">
         <label class="form-label">แนบรูป (หลายรูปได้)</label>
