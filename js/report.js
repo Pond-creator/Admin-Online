@@ -46,6 +46,14 @@ const REPORT = {
     }
     const ex = document.getElementById('rp-export');
     if (ex) ex.onclick = () => REPORT.exportCSV();
+    // พิมพ์ที่เลือก (เฉพาะหน้าขาย)
+    const ps = document.getElementById('rp-print-sel');
+    if (ps) ps.onclick = () => REPORT.printSelected();
+    const chkAll = document.getElementById('rp-check-all');
+    if (chkAll) chkAll.addEventListener('change', () => {
+      document.querySelectorAll('.rp-sel').forEach(cb => cb.checked = chkAll.checked);
+      REPORT.updatePrintCount();
+    });
     REPORT.load();
   },
 
@@ -144,7 +152,8 @@ const REPORT = {
     const sumEl = document.getElementById('rp-sum');
     if (sumEl) sumEl.textContent = fmtMoney(rows.reduce((s, n) => s + (+n.grand_total || 0), 0));
     const tb = document.getElementById('rp-rows');
-    if (!rows.length) { tb.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">ไม่พบรายการ</td></tr>`; return; }
+    const isSale = REPORT_TYPE === 'sale';
+    if (!rows.length) { tb.innerHTML = `<tr><td colspan="${isSale ? 7 : 6}" style="text-align:center;color:var(--text-muted);padding:30px">ไม่พบรายการ</td></tr>`; return; }
 
     tb.innerHTML = rows.map(n => {
       let detail;
@@ -160,6 +169,7 @@ const REPORT = {
           ? `<span style="color:var(--primary);font-weight:600">ค่าเปลี่ยน ${fmtMoney(n.exchange_fee)} ฿</span>` : '-';
       }
       return `<tr>
+        ${isSale ? `<td style="text-align:center"><input type="checkbox" class="rp-sel" value="${n.id}"></td>` : ''}
         <td>${fmtDate(n.date_noted)}</td>
         <td>${escapeHtml(n.store)}</td>
         <td>${escapeHtml(n.channel)}</td>
@@ -169,6 +179,45 @@ const REPORT = {
       </tr>`;
     }).join('');
     tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => viewNote(b.dataset.v));
+    // เลือกรายการเพื่อพิมพ์ (เฉพาะหน้าขาย)
+    tb.querySelectorAll('.rp-sel').forEach(cb => cb.addEventListener('change', REPORT.updatePrintCount));
+    const chkAll = document.getElementById('rp-check-all');
+    if (chkAll) chkAll.checked = false;
+    REPORT.updatePrintCount();
+  },
+
+  updatePrintCount() {
+    const btn = document.getElementById('rp-print-sel');
+    if (!btn) return;
+    btn.textContent = '🖨️ พิมพ์ที่เลือก (' + document.querySelectorAll('.rp-sel:checked').length + ')';
+  },
+
+  async printSelected() {
+    const ids = [...document.querySelectorAll('.rp-sel:checked')].map(c => c.value);
+    if (!ids.length) return toast('เลือกอย่างน้อย 1 รายการ', 'warning');
+    const datas = [];
+    for (const id of ids) { const r = await API.getNote(id); if (r.success) datas.push(r.data); }
+    if (!datas.length) return toast('โหลดข้อมูลไม่ได้', 'error');
+    const pages = datas.map((d, i) => `<div${i < datas.length - 1 ? ' style="page-break-after:always"' : ''}>
+      <div class="print-only" style="text-align:center;margin-bottom:12px">
+        <div style="font-size:20px;font-weight:700;color:#000">Admin Online — Folio</div>
+        <div style="font-size:13px;color:#555">ใบเบิกสินค้า · ${escapeHtml(d.note.order_no || '')}</div>
+      </div>${noteBodyHtml(d)}</div>`).join('');
+    document.getElementById('modal-root').innerHTML = `
+      <div class="modal-backdrop" id="mbp">
+        <div class="modal-card" id="print-area" style="max-width:820px">
+          <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="color:var(--primary)">🖨️ พิมพ์ ${datas.length} รายการ (ใบเบิกสินค้า)</h3>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" id="pp-print">🖨️ พิมพ์/PDF</button>
+              <button class="btn btn-secondary btn-sm" id="pp-close">✕ ปิด</button>
+            </div>
+          </div>${pages}
+        </div>
+      </div>`;
+    document.getElementById('pp-close').onclick = closeModal;
+    document.getElementById('mbp').onclick = e => { if (e.target.id === 'mbp') closeModal(); };
+    document.getElementById('pp-print').onclick = () => window.print();
   }
 };
 

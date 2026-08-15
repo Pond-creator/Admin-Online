@@ -60,15 +60,17 @@
       <label class="form-label">ค้นหา (เลขคำสั่งซื้อ / ลูกค้า / หมายเหตุ)</label>
       <input id="rp-q" class="form-control" placeholder="พิมพ์เพื่อค้นหา...">
     </div>
+    <button class="btn btn-primary" id="rp-print-sel">🖨️ พิมพ์ที่เลือก (0)</button>
     <button class="btn btn-success" id="rp-export">⬇️ Export Excel</button>
   </div>
 
   <div class="table-wrapper">
     <table>
       <thead><tr>
+        <th style="width:36px;text-align:center"><input type="checkbox" id="rp-check-all" title="เลือกทั้งหมด"></th>
         <th>วันที่โน๊ต</th><th>ร้าน</th><th>ช่องทาง</th><th>เลขคำสั่งซื้อ</th><th>ยอดที่ต้องชำระ</th><th></th>
       </tr></thead>
-      <tbody id="rp-rows"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">กำลังโหลด...</td></tr></tbody>
+      <tbody id="rp-rows"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">กำลังโหลด...</td></tr></tbody>
     </table>
   </div>
 </div>

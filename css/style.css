@@ -1228,20 +1228,20 @@ td:hover .btn-img-quick,
 .print-only { display: none; }
 @media print {
   @page { size: A4; margin: 14mm; }
-  body * { visibility: hidden; }
-  #print-area, #print-area * { visibility: visible; }
-  #print-area {
-    position: absolute; left: 0; top: 0; width: 100%;
-    max-width: 100% !important; padding: 0 !important;
-    box-shadow: none !important; border: none !important; background: #fff !important;
-  }
+  /* ซ่อนทุกอย่างนอก modal จริงๆ (display:none) → ไม่เหลือพื้นที่ดันหน้าเปล่า */
+  body > *:not(#modal-root) { display: none !important; }
+  #modal-root .no-print { display: none !important; }
   .modal-backdrop {
     position: static !important; background: none !important;
     padding: 0 !important; overflow: visible !important; display: block !important;
   }
-  .no-print { display: none !important; }
-  .print-only { display: block !important; visibility: visible !important; }
-  .recent-toggle, .recent-drawer, .app-header, .app-loader { display: none !important; }
+  #print-area {
+    position: static !important; width: 100% !important; max-width: 100% !important;
+    height: auto !important; max-height: none !important; overflow: visible !important;
+    margin: 0 !important; padding: 0 !important;
+    box-shadow: none !important; border: none !important; background: #fff !important;
+  }
+  .print-only { display: block !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
