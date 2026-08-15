@@ -1242,6 +1242,9 @@ td:hover .btn-img-quick,
     box-shadow: none !important; border: none !important; background: #fff !important;
   }
   .print-only { display: block !important; }
+  /* รูปแนบตอนพิมพ์ — ใหญ่ขึ้นพออ่านออก + แสดงเต็มรูป (ไม่ครอป) */
+  .img-zoom-wrap .thumb { width: 300px !important; height: auto !important; object-fit: contain !important; border-radius: 6px; }
+  .img-previews { gap: 14px !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
