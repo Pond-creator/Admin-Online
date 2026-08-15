@@ -1252,6 +1252,20 @@ td:hover .btn-img-quick,
     object-fit: contain; border: 1px solid #ccc; border-radius: 6px; flex: 0 0 auto;
   }
   .imgs-attach-single { display: none !important; }
+  /* พิมพ์แบบกระชับ — ลดฟอนต์/ช่องว่าง ให้พอดีหน้า ไม่ล้น */
+  #print-area { font-size: 12px; line-height: 1.32; }
+  #print-area .detail-grid { gap: 3px 14px !important; }
+  #print-area hr { margin: 9px 0 !important; }
+  #print-area table th, #print-area table td { padding: 3px 6px !important; font-size: 11px !important; }
+  #print-area .total-box { padding: 8px 12px !important; margin-top: 8px !important; }
+  #print-area .total-box .total-row { padding: 2px 0 !important; }
+  #print-area .total-box .total-row.grand { font-size: 14px !important; }
+  #print-area .note-remark { margin-top: 8px !important; }
+  #print-area .remark-text { line-height: 1.22 !important; font-size: 11px !important; }
+  #print-area h4 { margin: 4px 0 !important; font-size: 13px; }
+  .print-only { margin-bottom: 8px !important; }
+  /* ตัดหน้าให้สวยเมื่อเนื้อหายาว/หลายออเดอร์ — ไม่หั่นกลางแถว/กล่องยอด/หัวออเดอร์ */
+  #print-area table tr, #print-area .total-box, #print-area .detail-head { page-break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 /* รูปหลักฐานมุมขวาบน — โชว์เฉพาะตอนพิมพ์ (บนจอซ่อน) */
