@@ -234,8 +234,14 @@ async function viewNote(id) {
 function noteBodyHtml(data) {
   const { note, sale_items, exchange_from, exchange_to, tax } = data;
 
+  // รูปแนบ: ถ้าไฟล์เดียว → พิมพ์ไว้มุมขวาบนคู่กับข้อมูล (print เท่านั้น) · หลายไฟล์ = อยู่ล่างเหมือนเดิม
+  const imgsArr = (note.images || '').split(',').filter(Boolean);
+  const proofTop = imgsArr.length === 1
+    ? `<img class="print-proof" src="${imgsArr[0].replace('sz=w1000', 'sz=w1200')}" alt="หลักฐาน">`
+    : '';
+
   let body = `
-    <div class="detail-grid">
+    <div class="detail-head"><div class="detail-grid">
       <div class="k">ประเภท</div><div><span class="badge badge-${TYPE_BADGE[note.type]}">${TYPE_LABELS[note.type]}</span></div>
       <div class="k">วันที่โน๊ต</div><div>${fmtDate(note.date_noted)}</div>
       <div class="k">ร้านค้า</div><div>${escapeHtml(note.store)}</div>
@@ -243,7 +249,7 @@ function noteBodyHtml(data) {
       <div class="k">เลขคำสั่งซื้อ</div><div>${escapeHtml(note.order_no || '-')}</div>
       <div class="k">วันที่สั่งซื้อ</div><div>${fmtDate(note.purchase_date)}</div>
       ${(note.type === 'tax' || note.deadline) ? `<div class="k">🗓️ ลูกค้าต้องใช้เอกสาร</div><div style="color:var(--danger);font-weight:700">${note.deadline ? (fmtDate(note.deadline) + (daysUntil(note.deadline) < 0 ? ' · เกินกำหนด ' + (-daysUntil(note.deadline)) + ' วัน' : (daysUntil(note.deadline) === 0 ? ' · ครบกำหนดวันนี้' : ' · อีก ' + daysUntil(note.deadline) + ' วัน'))) : '-'}</div>` : ''}
-    </div><hr style="border-color:var(--border);margin:16px 0">`;
+    </div>${proofTop}</div><hr style="border-color:var(--border);margin:16px 0">`;
 
   if (note.type === 'sale') {
     if (note.cust_name || note.cust_address || note.cust_phone) {
@@ -303,9 +309,10 @@ function noteBodyHtml(data) {
 
   if (note.remark) body += `<div style="margin-top:14px"><div class="k" style="color:var(--text-muted);font-size:12px">หมายเหตุ</div><div style="white-space:pre-wrap;line-height:1.55">${escapeHtml(note.remark)}</div></div>`;
 
-  const imgs = (note.images || '').split(',').filter(Boolean);
+  const imgs = imgsArr;
   if (imgs.length) {
-    body += `<div style="margin-top:14px"><div class="k" style="color:var(--text-muted);font-size:12px">รูปแนบ (ชี้เพื่อดูรูปใหญ่)</div><div class="img-previews">` +
+    // ไฟล์เดียว → ตอนพิมพ์ซ่อนบล็อกล่าง (ไปโชว์มุมขวาบนแทน); หลายไฟล์ = โชว์ล่างปกติ
+    body += `<div class="imgs-attach${imgs.length === 1 ? ' imgs-attach-single' : ''}" style="margin-top:14px"><div class="k" style="color:var(--text-muted);font-size:12px">รูปแนบ (ชี้เพื่อดูรูปใหญ่)</div><div class="img-previews">` +
       imgs.map(u => `<a href="${u.replace('sz=w1000', 'sz=w1200')}" target="_blank" class="img-zoom-wrap" title="ชี้ดูรูปใหญ่ / คลิกเปิดเต็ม"><img class="thumb" src="${u}"><img class="zoom" src="${u.replace('sz=w1000', 'sz=w1600')}"></a>`).join('') + `</div></div>`;
   }
 
