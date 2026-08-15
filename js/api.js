@@ -41,6 +41,10 @@ function showLoader(label) {
     }
   }, 110);
 }
+// เปลี่ยนข้อความใต้วงหมุน (เช่น "กำลังโหลด 2/5") ระหว่างงานที่คุมเอง
+function setLoaderLabel(text) {
+  if (_loaderEl) _loaderEl.querySelector('.lbl').textContent = text || 'กำลังโหลด...';
+}
 function hideLoader() {
   if (_loaderCount > 0) _loaderCount--;
   if (_loaderCount > 0 || !_loaderEl) return;   // ยังมีงานค้าง
@@ -92,7 +96,7 @@ const API = {
   saveNote:       (data) => apiCall('saveNote', data),
   updateNote:     (data) => apiCall('updateNote', data),
   listNotes:      (filters = {}) => apiCall('listNotes', filters),
-  getNote:        (id) => apiCall('getNote', { id }),
+  getNote:        (id, opts) => apiCall('getNote', { id }, opts),
   deleteNote:     (id) => apiCall('deleteNote', { id }),
   issueInvoice:   (data) => apiCall('issueInvoice', data),
   getUsers:       () => apiCall('getUsers'),

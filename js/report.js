@@ -196,7 +196,13 @@ const REPORT = {
     const ids = [...document.querySelectorAll('.rp-sel:checked')].map(c => c.value);
     if (!ids.length) return toast('เลือกอย่างน้อย 1 รายการ', 'warning');
     const datas = [];
-    for (const id of ids) { const r = await API.getNote(id); if (r.success) datas.push(r.data); }
+    showLoader('กำลังโหลด 0/' + ids.length);   // loader เดียวคุมเอง
+    for (let i = 0; i < ids.length; i++) {
+      const r = await API.getNote(ids[i], { silent: true });   // ไม่ให้แต่ละคอลสลับ loader
+      if (r.success) datas.push(r.data);
+      setLoaderLabel('กำลังโหลด ' + (i + 1) + '/' + ids.length);
+    }
+    hideLoader();
     if (!datas.length) return toast('โหลดข้อมูลไม่ได้', 'error');
     const pages = datas.map((d, i) => `<div${i < datas.length - 1 ? ' style="page-break-after:always"' : ''}>
       <div class="print-only" style="text-align:center;margin-bottom:12px">
