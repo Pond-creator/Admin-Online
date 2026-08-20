@@ -57,49 +57,61 @@ function hideLoader() {
 async function apiCall(action, data = {}, opts = {}) {
   const payload = { action, token: Auth.getToken(), ...data };
   if (!opts.silent) showLoader();   // silent = ไม่ขึ้น overlay ใหญ่ (เช่น ดึงรหัสสินค้า)
+  const maxTries = opts.retry ? 3 : 1;   // retry เฉพาะงานอ่าน (opts.retry) — งานเขียนห้ามซ้ำ กันข้อมูลซ้ำ
   try {
-    const payloadStr = JSON.stringify(payload);
-    let res;
-    if (payloadStr.length > 3500) {
-      // payload ใหญ่ (เช่น แนบรูป) → POST
-      res = await fetch(API_URL, {
-        method: 'POST',
-        body: payloadStr,
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-      });
-    } else {
-      const params = new URLSearchParams();
-      Object.entries(payload).forEach(([k, v]) => {
-        params.append(k, typeof v === 'object' ? JSON.stringify(v) : v);
-      });
-      res = await fetch(API_URL + '?' + params.toString());
+    let lastErr = '';
+    for (let attempt = 1; attempt <= maxTries; attempt++) {
+      try {
+        const payloadStr = JSON.stringify(payload);
+        let res;
+        if (payloadStr.length > 3500) {
+          // payload ใหญ่ (เช่น แนบรูป) → POST
+          res = await fetch(API_URL, {
+            method: 'POST',
+            body: payloadStr,
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+          });
+        } else {
+          const params = new URLSearchParams();
+          Object.entries(payload).forEach(([k, v]) => {
+            params.append(k, typeof v === 'object' ? JSON.stringify(v) : v);
+          });
+          res = await fetch(API_URL + '?' + params.toString());
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);   // 404/500 (เช่น Google Drive ขัดข้อง)
+        const json = await res.json();                         // ถ้าได้หน้า error (ไม่ใช่ JSON) → throw → retry
+        if (json.success === false && json.message === 'Unauthorized') {
+          Auth.clear();
+          window.location.href = 'index.html';
+        }
+        return json;   // ได้คำตอบจริง (รวม business error ที่ success:false) → คืนเลย ไม่ลองซ้ำ
+      } catch (err) {
+        lastErr = err.message;
+        if (attempt < maxTries) {
+          if (!opts.silent) setLoaderLabel('Google ขัดข้องชั่วคราว — กำลังลองใหม่ (' + (attempt + 1) + '/' + maxTries + ')...');
+          await new Promise(r => setTimeout(r, 700 * attempt));   // หน่วงก่อนลองซ้ำ (0.7s → 1.4s)
+        }
+      }
     }
-    const json = await res.json();
-    if (json.success === false && json.message === 'Unauthorized') {
-      Auth.clear();
-      window.location.href = 'index.html';
-    }
-    return json;
-  } catch (err) {
-    return { success: false, message: 'เชื่อมต่อ API ไม่ได้: ' + err.message };
+    return { success: false, message: 'เชื่อมต่อ Google ไม่ได้ชั่วคราว (บริการอาจขัดข้อง) — กรุณารีเฟรชแล้วลองใหม่' };
   } finally {
     if (!opts.silent) hideLoader();
   }
 }
 
 const API = {
-  login:          (username, password) => apiCall('login', { username, password }),
-  getMeta:        () => apiCall('getMeta'),
-  getProduct:     (code) => apiCall('getProduct', { code }, { silent: true }),
-  getNextOrderNo: (store) => apiCall('getNextOrderNo', { store }, { silent: true }),
-  searchProducts: (q) => apiCall('searchProducts', { q }, { silent: true }),
-  saveNote:       (data) => apiCall('saveNote', data),
-  updateNote:     (data) => apiCall('updateNote', data),
-  listNotes:      (filters = {}) => apiCall('listNotes', filters),
-  getNote:        (id, opts) => apiCall('getNote', { id }, opts),
-  deleteNote:     (id) => apiCall('deleteNote', { id }),
-  issueInvoice:   (data) => apiCall('issueInvoice', data),
-  getUsers:       () => apiCall('getUsers'),
+  login:          (username, password) => apiCall('login', { username, password }, { retry: true }),
+  getMeta:        () => apiCall('getMeta', {}, { retry: true }),
+  getProduct:     (code) => apiCall('getProduct', { code }, { silent: true, retry: true }),
+  getNextOrderNo: (store) => apiCall('getNextOrderNo', { store }, { silent: true }),   // ไม่ retry (กันเลขข้าม)
+  searchProducts: (q) => apiCall('searchProducts', { q }, { silent: true, retry: true }),
+  saveNote:       (data) => apiCall('saveNote', data),          // งานเขียน — ไม่ retry
+  updateNote:     (data) => apiCall('updateNote', data),        // งานเขียน — ไม่ retry
+  listNotes:      (filters = {}) => apiCall('listNotes', filters, { retry: true }),
+  getNote:        (id, opts) => apiCall('getNote', { id }, { retry: true, ...opts }),
+  deleteNote:     (id) => apiCall('deleteNote', { id }),        // งานเขียน — ไม่ retry
+  issueInvoice:   (data) => apiCall('issueInvoice', data),      // งานเขียน — ไม่ retry
+  getUsers:       () => apiCall('getUsers', {}, { retry: true }),
   addUser:        (data) => apiCall('addUser', data),
   updateUser:     (data) => apiCall('updateUser', data)
 };
