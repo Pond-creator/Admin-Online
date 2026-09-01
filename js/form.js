@@ -42,7 +42,8 @@ async function updateOrderNoLock() {
   orderEl.readOnly = true;
   orderNoAuto = true;
   orderEl.value = 'กำลังสร้างเลข...';
-  const res = await API.getNextOrderNo(store);
+  const purchaseDate = document.getElementById('purchase_date').value;   // Y-m-d (อิงวันที่สั่งซื้อ)
+  const res = await API.getNextOrderNo(store, purchaseDate);
   orderEl.value = res.success ? res.order_no : '';
 }
 
@@ -84,7 +85,7 @@ async function init() {
   if (!editId && typeParam && META.types.some(t => t.key === typeParam)) currentType = typeParam;
 
   fpDateNoted = flatpickr('#date_noted', Object.assign(editId ? {} : { defaultDate: 'today' }, fpOpts));
-  fpPurchase = flatpickr('#purchase_date', fpOpts);
+  fpPurchase = flatpickr('#purchase_date', Object.assign({}, fpOpts, { onChange: () => updateOrderNoLock() }));   // เปลี่ยนวันสั่งซื้อ → อัปเดตเลขคำสั่งซื้อ
 
   renderTabs();
   renderTypeSection();
@@ -167,9 +168,12 @@ function renderTypeSection() {
 function setEntity(type) {
   document.querySelectorAll('#entity-tabs .tab').forEach(b =>
     b.classList.toggle('active', b.dataset.entity === type));
-  document.getElementById('branch-group').style.display = (type === 'company') ? '' : 'none';
-  document.getElementById('tax_name_label').textContent = (type === 'company') ? 'ชื่อบริษัท' : 'ชื่อ';
-  document.getElementById('tax_surname_label').textContent = (type === 'company') ? 'สาขา/แผนก (ถ้ามี)' : 'นามสกุล';
+  const isCo = (type === 'company');
+  document.getElementById('branch-group').style.display = isCo ? '' : 'none';
+  document.getElementById('tax_name_label').textContent = isCo ? 'ชื่อบริษัท' : 'ชื่อ - นามสกุล';
+  document.getElementById('tax_surname_label').textContent = isCo ? 'สาขา/แผนก (ถ้ามี)' : 'นามสกุล';
+  // บุคคลธรรมดา = รวมชื่อ-สกุลช่องเดียว → ซ่อนช่องนามสกุล · นิติบุคคล = โชว์ (สาขา/แผนก)
+  document.getElementById('tax_surname_group').style.display = isCo ? '' : 'none';
 }
 
 // ---------- SALE ----------
@@ -457,8 +461,8 @@ function taxFieldsHtml() {
       </div>
     </div>
     <div class="grid-2">
-      <div class="form-group"><label class="form-label" id="tax_name_label">ชื่อ</label><input id="tax_name" class="form-control"></div>
-      <div class="form-group"><label class="form-label" id="tax_surname_label">นามสกุล</label><input id="tax_surname" class="form-control"></div>
+      <div class="form-group"><label class="form-label" id="tax_name_label">ชื่อ - นามสกุล</label><input id="tax_name" class="form-control"></div>
+      <div class="form-group" id="tax_surname_group"><label class="form-label" id="tax_surname_label">นามสกุล</label><input id="tax_surname" class="form-control"></div>
     </div>
     <div class="form-group"><label class="form-label">ที่อยู่</label>
       <textarea id="tax_address" class="form-control" rows="2"></textarea></div>
@@ -532,7 +536,8 @@ function gatherTax() {
   const entEl = document.querySelector('#entity-tabs .tab.active');
   const entity = entEl ? entEl.dataset.entity : 'individual';
   const tax = {
-    tax_id: val('tax_id'), name: val('tax_name'), surname: val('tax_surname'),
+    tax_id: val('tax_id'), name: val('tax_name'),
+    surname: (entity === 'company') ? val('tax_surname') : '',   // บุคคลธรรมดา: ชื่อ-สกุลรวมในช่อง name ช่องเดียว
     address: val('tax_address'), phone: val('tax_phone'), email: val('tax_email'),
     entity_type: entity, branch: ''
   };
@@ -563,8 +568,14 @@ function fillTax(tax) {
     }
   }
   document.getElementById('tax_id').value = tax.tax_id || '';
-  document.getElementById('tax_name').value = tax.name || '';
-  document.getElementById('tax_surname').value = tax.surname || '';
+  if (tax.entity_type === 'company') {
+    document.getElementById('tax_name').value = tax.name || '';
+    document.getElementById('tax_surname').value = tax.surname || '';
+  } else {
+    // บุคคลธรรมดา: รวมชื่อ+สกุล (รองรับข้อมูลเก่าที่แยกช่อง) มาช่องเดียว
+    document.getElementById('tax_name').value = ((tax.name || '') + ' ' + (tax.surname || '')).trim();
+    document.getElementById('tax_surname').value = '';
+  }
   document.getElementById('tax_address').value = tax.address || '';
   document.getElementById('tax_phone').value = tax.phone || '';
   document.getElementById('tax_email').value = tax.email || '';
