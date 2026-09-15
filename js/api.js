@@ -57,7 +57,7 @@ function hideLoader() {
 async function apiCall(action, data = {}, opts = {}) {
   const payload = { action, token: Auth.getToken(), ...data };
   if (!opts.silent) showLoader();   // silent = ไม่ขึ้น overlay ใหญ่ (เช่น ดึงรหัสสินค้า)
-  const maxTries = opts.retry ? 3 : 1;   // retry เฉพาะงานอ่าน (opts.retry) — งานเขียนห้ามซ้ำ กันข้อมูลซ้ำ
+  const maxTries = opts.retry ? 5 : 1;   // retry เฉพาะงานอ่าน (opts.retry) — งานเขียนห้ามซ้ำ กันข้อมูลซ้ำ · 5 ครั้งครอบ ~9 วิ กันอาการ Apps Script สุ่มพลาด/ค้าง
   try {
     let lastErr = '';
     for (let attempt = 1; attempt <= maxTries; attempt++) {
