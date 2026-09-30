@@ -381,7 +381,8 @@ function issueModal(data) {
               <div id="mi-list" style="margin-top:10px"></div>
             </div>
             <button class="btn btn-primary" id="mi-save" style="width:100%">💾 บันทึก</button>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:8px">* ไฟล์เก็บที่โฟลเดอร์ invoice · แนบผิดลบไฟล์เดิมแล้วแนบใหม่ได้</div>
+            ${wasIssued ? `<button class="btn btn-warning" id="mi-unissue" style="width:100%;margin-top:8px">↩️ ยกเลิกการออกเอกสาร (เอาเอกสารออกทั้งหมด)</button>` : ''}
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px">* ไฟล์เก็บที่โฟลเดอร์ invoice · แนบผิดลบไฟล์เดิมแล้วแนบใหม่ได้<br>* "ยกเลิกการออกเอกสาร" = ปลดสถานะออกแล้ว + เอาเอกสารออก → กลับไปคิวรอออกเอกสาร (ตัวโน๊ตไม่ถูกลบ)</div>
           </div>
         </div>
       </div>
@@ -426,9 +427,30 @@ function issueModal(data) {
     const btn = document.getElementById('mi-save');
     btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...';
     const res = await API.issueInvoice({ id: note.id, issued, files, existing });
-    if (res.success) { toast(res.message || 'สำเร็จ', 'success'); closeModal(); load(); }
+    if (res.success) { toast(res.message || 'สำเร็จ', 'success'); closeModal(); refreshCurrentList(); }
     else { toast(res.message || 'ไม่สำเร็จ', 'error'); btn.disabled = false; btn.textContent = '💾 บันทึก'; }
+  };
+
+  // ยกเลิกการออกเอกสาร — ปลดสถานะ issued + เอาเอกสารที่แนบออกทั้งหมด
+  // (ไม่ลบโน๊ต ไม่ลบไฟล์ใน Drive — แค่ตัดการผูก) โน๊ตจะกลับไปคิวรอออกเอกสารให้แนบใหม่ได้
+  const unBtn = document.getElementById('mi-unissue');
+  if (unBtn) unBtn.onclick = async () => {
+    if (!confirm('ยกเลิกการออกเอกสารรายการนี้?\n\n• เอาเอกสารที่แนบไว้ออกทั้งหมด\n• ปลดสถานะ "ออกเอกสารแล้ว"\n• โน๊ตจะกลับไปคิวรอออกเอกสาร (ไม่ถูกลบ)\n\nต้องแนบเอกสารใหม่แล้วกดออกเอกสารอีกครั้ง')) return;
+    unBtn.disabled = true; unBtn.textContent = '⏳ กำลังยกเลิก...';
+    const res = await API.issueInvoice({ id: note.id, issued: false, files: [], existing: [] });
+    if (res.success) { toast('ยกเลิกการออกเอกสารแล้ว — แนบเอกสารใหม่ได้', 'success'); closeModal(); refreshCurrentList(); }
+    else { toast(res.message || 'ไม่สำเร็จ', 'error'); unBtn.disabled = false; unBtn.textContent = '↩️ ยกเลิกการออกเอกสาร (เอาเอกสารออกทั้งหมด)'; }
   };
 }
 
 function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
+
+// รีเฟรชตารางของ "หน้าที่เปิดอยู่จริง" — dashboard.js ถูกโหลดร่วมหลายหน้า
+// (dashboard=rows / issued=if-rows / รายงานขาย-ยกเลิก-เปลี่ยน=rp-rows) เรียก load() ตรงๆ จะพังในหน้าอื่น
+function refreshCurrentList() {
+  try {
+    if (document.getElementById('if-rows') && typeof ISSUED !== 'undefined') return ISSUED.load();
+    if (document.getElementById('rp-rows') && typeof REPORT !== 'undefined') return REPORT.load();
+    if (document.getElementById('rows')) return load();
+  } catch (e) { console.warn('refreshCurrentList', e); }
+}
