@@ -3,6 +3,15 @@
 //  หน้า HTML ตั้ง REPORT_TYPE = 'cancel' | 'exchange'
 //  ใช้ viewNote / noteBodyHtml / fmt* ร่วมจาก dashboard.js + api.js
 // ============================================================
+// วันที่ที่ใช้เป็นหลักของรายงาน (คอลัมน์แรก + ตัวกรองจาก/ถึง + การเรียง)
+// รายงานขาย = วันที่สั่งซื้อ (ให้ตรงกับ Export + เลขคำสั่งซื้อที่อิงเดือนที่สั่งซื้อ) · โน๊ตเก่าที่ไม่มี = ใช้วันที่โน๊ตแทน
+// รายงานยกเลิก/เปลี่ยนสินค้า = วันที่โน๊ตเหมือนเดิม (คือวันที่แจ้งเรื่อง)
+function reportDate(n) {
+  return REPORT_TYPE === 'sale'
+    ? String(n.purchase_date || n.date_noted || '')
+    : String(n.date_noted || '');
+}
+
 const REPORT = {
   items: [],
   channelSel: new Set(),   // ช่องทางที่ติ๊กไว้ (ว่าง = ทั้งหมด)
@@ -68,8 +77,8 @@ const REPORT = {
       // รายงานขาย: แยกรายสินค้า 1 แถว/ชิ้น + หัวรายงาน + เฉลี่ยค่าส่ง
       const store = document.getElementById('rp-store').value || 'ทั้งหมด';
       const from = document.getElementById('rp-from').value, to = document.getElementById('rp-to').value;
-      lines.push(esc(`รายงานคำสั่งซื้อของแบรนด์ ${store} · ดึงตั้งแต่วันที่ ${from ? fmtDate(from) : '-'} ถึง ${to ? fmtDate(to) : '-'}`));
-      lines.push(['รหัสออเดอร์', 'วันที่', 'ช่องทางขาย', 'รหัสสินค้า', 'รายละเอียดการสั่งซื้อ', 'จำนวน', 'ราคาเต็ม', 'ส่วนลด', 'ค่าจัดส่ง', 'ยอดชำระ', 'ชื่อ', 'เบอร์โทร', 'ที่อยู่'].map(esc).join(','));
+      lines.push(esc(`รายงานคำสั่งซื้อของแบรนด์ ${store} · ดึงตามวันที่สั่งซื้อ ตั้งแต่ ${from ? fmtDate(from) : '-'} ถึง ${to ? fmtDate(to) : '-'}`));
+      lines.push(['รหัสออเดอร์', 'วันที่สั่งซื้อ', 'ช่องทางขาย', 'รหัสสินค้า', 'รายละเอียดการสั่งซื้อ', 'จำนวน', 'ราคาเต็ม', 'ส่วนลด', 'ค่าจัดส่ง', 'ยอดชำระ', 'ชื่อ', 'เบอร์โทร', 'ที่อยู่'].map(esc).join(','));
       rows.forEach(n => {
         const items = (n.sale_items || []).filter(it => !isGift(it));
         if (!items.length) return;
@@ -80,7 +89,7 @@ const REPORT = {
           const shipShare = (idx === items.length - 1) ? +(ship - per * (items.length - 1)).toFixed(2) : per;
           const pay = +(Math.max(0, qty * price - disc) + shipShare).toFixed(2);
           const detail = (it.name || '') + (it.color ? ' : ' + it.color : '');
-          lines.push([n.order_no, fmtDate(n.purchase_date), n.channel, it.code, detail, qty, price, disc, shipShare, pay, n.cust_name, n.cust_phone, n.cust_address].map(esc).join(','));
+          lines.push([n.order_no, fmtDate(reportDate(n)), n.channel, it.code, detail, qty, price, disc, shipShare, pay, n.cust_name, n.cust_phone, n.cust_address].map(esc).join(','));
         });
       });
     } else if (REPORT_TYPE === 'cancel') {
@@ -105,7 +114,12 @@ const REPORT = {
 
   async load() {
     const p = (document.getElementById('rp-period') || {}).value;   // ช่วงเวลาโหลด (เดือน)
-    const res = await API.listNotes({ type: REPORT_TYPE, date_from: periodDateFrom(p), limit: periodLimit(p), with_items: REPORT_TYPE === 'sale' ? '1' : '' });
+    // รายงานขายให้เซิร์ฟเวอร์ดึงตาม "วันที่สั่งซื้อ" ด้วย (ไม่ใช่วันที่โน๊ต) จะได้ตรงกับคอลัมน์+ตัวกรองบนจอ
+    const res = await API.listNotes({
+      type: REPORT_TYPE, date_from: periodDateFrom(p), limit: periodLimit(p),
+      with_items: REPORT_TYPE === 'sale' ? '1' : '',
+      date_field: REPORT_TYPE === 'sale' ? 'purchase_date' : ''
+    });
     REPORT.items = res.success ? (res.data || []) : [];
     // เติมช่องทางจริงจากข้อมูลลงพาเนล (รวมช่องทางที่พิมพ์เอง) — เลือกได้หลายตัว
     const chPanel = document.getElementById('rp-channel-panel');
@@ -138,13 +152,17 @@ const REPORT = {
     let rows = REPORT.items.filter(n => {
       if (store && n.store !== store) return false;
       if (chSel && chSel.size && !chSel.has(n.channel)) return false;
-      const d = String(n.date_noted || '');
+      const d = reportDate(n);
       if (from && d < from) return false;
       if (to && d > to) return false;
       if (q && ![n.order_no, n.remark, n.customer, n.cancel_reason].join(' ').toLowerCase().includes(q)) return false;
       return true;
     });
-    rows.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    // รายงานขายเรียงตามวันที่สั่งซื้อ (ใหม่→เก่า) วันเดียวกันใช้เวลาที่บันทึกตัดสิน · รายงานอื่นเรียงตามเวลาที่บันทึกเหมือนเดิม
+    if (REPORT_TYPE === 'sale')
+      rows.sort((a, b) => reportDate(b).localeCompare(reportDate(a)) || String(b.created_at).localeCompare(String(a.created_at)));
+    else
+      rows.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     REPORT.filtered = rows;   // เก็บไว้ให้ export
 
     document.getElementById('rp-count').textContent = rows.length;
@@ -170,11 +188,11 @@ const REPORT = {
       }
       return `<tr>
         ${isSale ? `<td style="text-align:center"><input type="checkbox" class="rp-sel" value="${n.id}"></td>` : ''}
-        <td>${fmtDate(n.date_noted)}</td>
+        <td>${fmtDate(reportDate(n))}${REPORT_TYPE === 'sale' && !n.purchase_date ? ` <span style="color:var(--warning)" title="โน๊ตนี้ไม่มีวันที่สั่งซื้อ — แสดงวันที่โน๊ตแทน">*</span>` : ''}</td>
         <td>${escapeHtml(n.store)}</td>
         <td>${escapeHtml(n.channel)}</td>
         <td>${escapeHtml(n.order_no || '-')}${REPORT_TYPE === 'sale' && n.has_tax ? `<div style="margin-top:4px"><span class="badge ${(n.issued === true || n.issued === 'TRUE' || n.issued === 'true') ? 'badge-primary' : 'badge-warning'}">🧾 ${(n.issued === true || n.issued === 'TRUE' || n.issued === 'true') ? 'ออกใบกำกับแล้ว' : 'ขอใบกำกับ'}</span></div>` : ''}</td>
-        <td>${detail}<div style="font-size:11px;color:var(--text-muted)">โดย ${escapeHtml(n.created_by_name || '-')} · ${fmtDateTime(n.created_at)}</div></td>
+        <td>${detail}<div style="font-size:11px;color:var(--text-muted)">โดย ${escapeHtml(n.created_by_name || '-')} · ${REPORT_TYPE === 'sale' ? 'โน๊ต ' + fmtDate(n.date_noted) : fmtDateTime(n.created_at)}</div></td>
         <td><button class="btn btn-secondary btn-sm" data-v="${n.id}">ดู</button></td>
       </tr>`;
     }).join('');
