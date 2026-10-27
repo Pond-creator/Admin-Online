@@ -77,7 +77,7 @@ async function init() {
   const meta = await API.getMeta();
   if (meta.success && meta.data) META = meta.data;   // ถ้าดึงไม่ได้ ใช้ DEFAULT_META
   // บังคับลำดับแท็บให้ใบกำกับมาก่อนเสมอ (ไม่ต้องพึ่งลำดับจาก server)
-  const ORDER = ['tax', 'sale', 'exchange', 'cancel'];
+  const ORDER = ['tax', 'sale', 'exchange', 'cancel', 'dealer'];   // ประเภทใหม่ต้องเพิ่มที่นี่ด้วย ไม่งั้นถูกดันไปหน้าสุด (indexOf = -1)
   META.types = (META.types || []).slice().sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
   META.stores = (META.stores || []).filter(s => s !== 'อื่นๆ');   // ไม่ให้เลือกร้าน "อื่นๆ"
   fillSelect('store', META.stores);
@@ -173,12 +173,23 @@ function renderTypeSection() {
     fpDealerDeadline = flatpickr('#dl_deadline', fpBaseOpts());   // กำหนดส่งของ (เก็บ instance ไว้ใช้ตอนแก้ไข)
     fillDealerSelect();
     document.getElementById('dl_customer').addEventListener('change', onDealerPick);
+    document.getElementById('dl_ship_by_sel').addEventListener('change', onShipByPick);
     document.getElementById('add-dealer-item').addEventListener('click', () => addDealerItem());
     addDealerItem();
   }
 }
 
 // ====== ใบเบิกผู้แทนจำหน่าย ======
+// ตัวเลือก "จัดส่งโดย" — เพิ่ม/แก้ได้ที่นี่ที่เดียว ("พิมพ์เอง" ถูกใส่ให้เป็นตัวแรกเสมอ)
+const SHIP_BY_OPTIONS = ['ขนส่งรถของบริษัท', 'Kerry Express', 'Flash Express', 'J&T Express', 'ไปรษณีย์ไทย', 'ลูกค้ามารับเอง'];
+
+// เลือกวิธีจัดส่ง → "พิมพ์เอง" โชว์ช่องพิมพ์ · เลือกจากรายการ = เติมให้แล้วซ่อนช่องพิมพ์
+function onShipByPick() {
+  const v = document.getElementById('dl_ship_by_sel').value;
+  const box = document.getElementById('dl_ship_by');
+  if (v === '__other') { box.style.display = ''; box.focus(); }
+  else { box.value = v; box.style.display = 'none'; }
+}
 // ซ่อน/แสดงช่องร่วมตามประเภท — ใบเบิกเบิกผสมแบรนด์ จึงไม่เก็บร้านค้า/ช่องทางขาย
 function applyTypeFieldVisibility() {
   const isDealer = currentType === 'dealer';
@@ -247,11 +258,11 @@ function tplDealer() {
         </div>
         <div class="form-group" style="margin-bottom:0">
           <label class="form-label">จัดส่งโดย</label>
-          <input id="dl_ship_by" class="form-control" placeholder="เช่น ขนส่งรถของบริษัท" list="ship-by-list">
-          <datalist id="ship-by-list">
-            <option>ขนส่งรถของบริษัท</option><option>Kerry Express</option>
-            <option>Flash Express</option><option>ไปรษณีย์ไทย</option><option>ลูกค้ามารับเอง</option>
-          </datalist>
+          <select id="dl_ship_by_sel" class="form-control">
+            ${['__other'].concat(SHIP_BY_OPTIONS).map(v =>
+              `<option value="${escapeHtml(v)}">${v === '__other' ? '✏️ พิมพ์เอง' : escapeHtml(v)}</option>`).join('')}
+          </select>
+          <input id="dl_ship_by" class="form-control" style="margin-top:8px" placeholder="พิมพ์วิธีจัดส่ง เช่น ขนส่งรถของบริษัท">
         </div>
       </div>
     </div>
@@ -1048,6 +1059,10 @@ async function loadForEdit(id) {
     document.getElementById('dl_address').value = note.cust_address || '';
     document.getElementById('dl_phone').value   = note.cust_phone || '';
     document.getElementById('dl_ship_by').value = note.ship_by || '';
+    // ถ้าวิธีจัดส่งตรงกับตัวเลือกในรายการ → เลือกให้ · ไม่ตรง (เคยพิมพ์เอง) → คงโหมดพิมพ์เอง
+    const shipSel = document.getElementById('dl_ship_by_sel');
+    shipSel.value = SHIP_BY_OPTIONS.includes(note.ship_by) ? note.ship_by : '__other';
+    onShipByPick();
     if (note.deadline) {
       if (fpDealerDeadline) fpDealerDeadline.setDate(note.deadline, true);
       else document.getElementById('dl_deadline').value = note.deadline;

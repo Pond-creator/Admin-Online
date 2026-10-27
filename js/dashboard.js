@@ -32,7 +32,7 @@ async function init() {
 
   const meta = await API.getMeta();
   if (meta.success && meta.data) META = meta.data;
-  const ORDER = ['tax', 'sale', 'exchange', 'cancel'];
+  const ORDER = ['tax', 'sale', 'exchange', 'cancel', 'dealer'];   // ประเภทใหม่ต้องเพิ่มที่นี่ด้วย ไม่งั้นถูกดันไปหน้าสุด (indexOf = -1)
   META.types = (META.types || []).slice().sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
   META.stores = (META.stores || []).filter(s => s !== 'อื่นๆ');   // ไม่ให้เลือกร้าน "อื่นๆ"
   addOptions('f-type', META.types.map(t => ({ v: t.key, l: t.label })));
