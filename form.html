@@ -40,11 +40,11 @@
           <label class="form-label">วันที่โน๊ต <span style="color:var(--danger)">*</span></label>
           <input type="text" id="date_noted" class="form-control" placeholder="วว/ดด/ปปปป" required>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="store-group">
           <label class="form-label">ร้านค้า <span style="color:var(--danger)">*</span></label>
           <select id="store" class="form-control" required></select>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="channel-group">
           <label class="form-label">ช่องทางขาย <span style="color:var(--danger)">*</span></label>
           <select id="channel" class="form-control" required></select>
         </div>
@@ -52,8 +52,8 @@
           <label class="form-label">ระบุช่องทาง (อื่นๆ) <span style="color:var(--danger)">*</span></label>
           <input type="text" id="channel_other" class="form-control" placeholder="พิมพ์ช่องทางที่ขาย">
         </div>
-        <div class="form-group">
-          <label class="form-label">หมายเลขคำสั่งซื้อ</label>
+        <div class="form-group" id="orderno-group">
+          <label class="form-label" id="orderno-label">หมายเลขคำสั่งซื้อ</label>
           <input type="text" id="order_no" class="form-control" placeholder="เช่น 2606155J40WBA4 (ไม่บังคับ)">
         </div>
         <div class="form-group">

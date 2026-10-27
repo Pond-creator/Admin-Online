@@ -11,15 +11,17 @@ const DEFAULT_META = {
     { key: 'tax', label: 'ออกใบกำกับภาษี' },
     { key: 'sale', label: 'ออเดอร์ขาย' },
     { key: 'exchange', label: 'เปลี่ยนสินค้า' },
-    { key: 'cancel', label: 'ยกเลิก' }
-  ]
+    { key: 'cancel', label: 'ยกเลิก' },
+    { key: 'dealer', label: 'เบิกสินค้า' }
+  ],
+  dealers: []
 };
 let META = DEFAULT_META;
 let currentType = 'tax';
 let images = [];           // รูปใหม่ [{ name, dataUrl }]
 let existingImages = [];   // รูปเดิม (URL) ตอนแก้ไข
 let editId = null;         // ถ้าไม่ null = โหมดแก้ไข
-let fpDateNoted, fpPurchase;  // instance ปฏิทิน
+let fpDateNoted, fpPurchase, fpDealerDeadline;  // instance ปฏิทิน
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -33,7 +35,9 @@ async function updateOrderNoLock() {
   const store = document.getElementById('store').value;
   const channel = document.getElementById('channel').value;
   const orderEl = document.getElementById('order_no');
-  const shouldAuto = currentType === 'sale' && store && isAutoOrderChannel(channel);
+  // ใบเบิก = รันเลขเสมอ (ไม่มีร้านค้า ใช้ตัวนำหน้า DL) · ออเดอร์ขาย = เฉพาะร้าน+ช่องทางที่ไม่มีเลขจริง
+  const shouldAuto = currentType === 'dealer'
+    || (currentType === 'sale' && store && isAutoOrderChannel(channel));
   if (!shouldAuto) {
     orderEl.readOnly = false;
     if (orderNoAuto) { orderEl.value = ''; orderNoAuto = false; }   // ล้างเลขที่เคยรันไว้ (ประเภทอื่นกรอกเอง)
@@ -43,7 +47,7 @@ async function updateOrderNoLock() {
   orderNoAuto = true;
   orderEl.value = 'กำลังสร้างเลข...';
   const purchaseDate = document.getElementById('purchase_date').value;   // Y-m-d (อิงวันที่สั่งซื้อ)
-  const res = await API.getNextOrderNo(store, purchaseDate);
+  const res = await API.getNextOrderNo(store, purchaseDate, currentType);
   orderEl.value = res.success ? res.order_no : '';
 }
 
@@ -135,6 +139,9 @@ function renderTypeSection() {
   else if (currentType === 'exchange') box.innerHTML = tplExchange();
   else if (currentType === 'cancel')   box.innerHTML = tplCancel();
   else if (currentType === 'tax')      box.innerHTML = tplTax();
+  else if (currentType === 'dealer')   box.innerHTML = tplDealer();
+
+  applyTypeFieldVisibility();   // ใบเบิกไม่ใช้ ร้านค้า/ช่องทางขาย → ซ่อน + ปลด required
 
   if (currentType === 'sale') {
     document.getElementById('add-sale').addEventListener('click', () => addSaleItem());
@@ -162,7 +169,155 @@ function renderTypeSection() {
   } else if (currentType === 'tax') {
     flatpickr('#deadline', fpBaseOpts());   // ปฏิทิน deadline
     bindTaxSection();
+  } else if (currentType === 'dealer') {
+    fpDealerDeadline = flatpickr('#dl_deadline', fpBaseOpts());   // กำหนดส่งของ (เก็บ instance ไว้ใช้ตอนแก้ไข)
+    fillDealerSelect();
+    document.getElementById('dl_customer').addEventListener('change', onDealerPick);
+    document.getElementById('add-dealer-item').addEventListener('click', () => addDealerItem());
+    addDealerItem();
   }
+}
+
+// ====== ใบเบิกผู้แทนจำหน่าย ======
+// ซ่อน/แสดงช่องร่วมตามประเภท — ใบเบิกเบิกผสมแบรนด์ จึงไม่เก็บร้านค้า/ช่องทางขาย
+function applyTypeFieldVisibility() {
+  const isDealer = currentType === 'dealer';
+  [['store-group', 'store'], ['channel-group', 'channel']].forEach(([gid, fid]) => {
+    const g = document.getElementById(gid), f = document.getElementById(fid);
+    if (g) g.style.display = isDealer ? 'none' : '';
+    if (f) { f.required = !isDealer; if (isDealer) f.value = ''; }
+  });
+  const chOther = document.getElementById('channel-other-group');
+  if (chOther && isDealer) chOther.style.display = 'none';
+  const lbl = document.getElementById('orderno-label');
+  if (lbl) lbl.textContent = isDealer ? 'เลขที่ใบเบิก (ระบบรันให้)' : 'หมายเลขคำสั่งซื้อ';
+}
+
+function fillDealerSelect() {
+  const sel = document.getElementById('dl_customer');
+  const list = (META.dealers && META.dealers.length) ? META.dealers : [];
+  sel.innerHTML = '<option value="">— เลือกผู้แทนจำหน่าย —</option>'
+    + list.map(d => `<option>${escapeHtml(d.name)}</option>`).join('')
+    + '<option value="__other">อื่นๆ (พิมพ์เอง)</option>';
+}
+
+// เลือกร้าน → เติมที่อยู่/เบอร์ให้อัตโนมัติ (ยังแก้ได้) · "อื่นๆ" = กรอกเองทั้งหมด
+function onDealerPick() {
+  const v = document.getElementById('dl_customer').value;
+  const nameBox = document.getElementById('dl-other-group');
+  nameBox.style.display = (v === '__other') ? '' : 'none';
+  if (v === '__other' || !v) return;
+  const d = (META.dealers || []).find(x => x.name === v);
+  if (!d) return;
+  if (d.address) document.getElementById('dl_address').value = d.address;
+  if (d.phone)   document.getElementById('dl_phone').value = d.phone;
+}
+
+function tplDealer() {
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-title">ข้อมูลใบเบิก</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Sale (ชื่อผู้ขาย) <span style="color:var(--danger)">*</span></label>
+        <input id="dl_sale" class="form-control" placeholder="ชื่อเล่นผู้ขาย เช่น เป้">
+      </div>
+      <div class="form-group">
+        <label class="form-label">กำหนดส่งของ <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="dl_deadline" class="form-control" placeholder="วว/ดด/ปปปป">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Customer (ผู้แทนจำหน่าย) <span style="color:var(--danger)">*</span></label>
+      <select id="dl_customer" class="form-control"></select>
+    </div>
+    <div class="form-group" id="dl-other-group" style="display:none">
+      <label class="form-label">ระบุชื่อผู้แทนจำหน่าย <span style="color:var(--danger)">*</span></label>
+      <input id="dl_customer_other" class="form-control" placeholder="พิมพ์ชื่อร้าน">
+    </div>
+    <div class="grid-2">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">ที่อยู่</label>
+        <textarea id="dl_address" class="form-control" rows="5" style="resize:vertical" placeholder="ขึ้นบรรทัดใหม่ได้ตามต้องการ — ระบบเก็บรูปแบบให้เป๊ะ"></textarea>
+      </div>
+      <div>
+        <div class="form-group">
+          <label class="form-label">Tel.</label>
+          <input id="dl_phone" class="form-control" placeholder="เบอร์ติดต่อหน้าร้าน">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">จัดส่งโดย</label>
+          <input id="dl_ship_by" class="form-control" placeholder="เช่น ขนส่งรถของบริษัท" list="ship-by-list">
+          <datalist id="ship-by-list">
+            <option>ขนส่งรถของบริษัท</option><option>Kerry Express</option>
+            <option>Flash Express</option><option>ไปรษณีย์ไทย</option><option>ลูกค้ามารับเอง</option>
+          </datalist>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-title">รายการสินค้า</div>
+    <div id="dealer-items"></div>
+    <button type="button" class="btn btn-secondary btn-sm" id="add-dealer-item">➕ เพิ่มรายการ</button>
+    <div class="total-box" style="margin-top:16px">
+      <div class="total-row grand"><span>รวมจำนวน</span><span id="dl-total">0</span></div>
+    </div>
+  </div>`;
+}
+
+function itemCardDealer(no) {
+  return `
+  <div class="item-card" data-dealer-item>
+    <span class="item-no">รายการ ${no}</span>
+    <button type="button" class="remove-btn" data-remove>×</button>
+    <div class="grid-3">
+      <div class="form-group"><label class="form-label">รหัสสินค้า</label>
+        <input class="form-control" data-code placeholder="กรอกรหัส แล้ว Enter"></div>
+      <div class="form-group"><label class="form-label">ชื่อสินค้า</label>
+        <input class="form-control" data-name placeholder="ดึงอัตโนมัติ / กรอกเอง"></div>
+      <div class="form-group"><label class="form-label">สี</label>
+        <input class="form-control" data-color placeholder="ดึงอัตโนมัติ"></div>
+    </div>
+    <div class="form-group" style="max-width:200px;margin-bottom:0">
+      <label class="form-label">จำนวน</label>
+      <input type="number" class="form-control" data-qty value="1" min="1" step="1">
+    </div>
+  </div>`;
+}
+
+function addDealerItem(data) {
+  const box = document.getElementById('dealer-items');
+  const n = box.querySelectorAll('[data-dealer-item]').length + 1;
+  box.insertAdjacentHTML('beforeend', itemCardDealer(n));
+  const card = box.lastElementChild;
+  bindLookup(card);   // ใช้ตัวดึงสินค้าตัวเดียวกับออเดอร์ขาย (ไม่มีช่องราคา = ข้ามราคาเอง)
+  card.querySelector('[data-remove]').addEventListener('click', () => {
+    if (box.querySelectorAll('[data-dealer-item]').length <= 1) return toast('ต้องมีอย่างน้อย 1 รายการ', 'warning');
+    card.remove(); renumberDealer(); recalcDealer();
+  });
+  card.querySelector('[data-qty]').addEventListener('input', recalcDealer);
+  if (data) {
+    card.querySelector('[data-code]').value  = data.code || '';
+    card.querySelector('[data-name]').value  = data.name || '';
+    card.querySelector('[data-color]').value = data.color || '';
+    card.querySelector('[data-qty]').value   = data.qty || 1;
+  }
+  recalcDealer();
+  return card;
+}
+
+function renumberDealer() {
+  document.querySelectorAll('#dealer-items [data-dealer-item]').forEach((c, i) =>
+    c.querySelector('.item-no').textContent = 'รายการ ' + (i + 1));
+}
+
+function recalcDealer() {
+  let sum = 0;
+  document.querySelectorAll('#dealer-items [data-dealer-item]').forEach(c =>
+    sum += (+c.querySelector('[data-qty]').value || 0));
+  const el = document.getElementById('dl-total');
+  if (el) el.textContent = sum.toLocaleString('en-US');
 }
 
 function setEntity(type) {
@@ -671,16 +826,52 @@ async function submitNote(e) {
     images
   };
 
+  // ใบเบิก: ไม่มีร้านค้า/ช่องทางขาย + ให้ server รันเลขที่ใบเบิก (DL....) ตอนบันทึก
+  if (currentType === 'dealer') {
+    payload.store = ''; payload.channel = '';
+    payload.is_auto_order = !editId;
+  }
+
   // บังคับกรอกข้อมูลทั่วไป (ยกเว้นหมายเลขคำสั่งซื้อ)
   if (!payload.date_noted) return toast('กรุณาเลือกวันที่โน๊ต', 'warning');
-  if (!payload.store) return toast('กรุณาเลือกร้านค้า', 'warning');
-  if (!channel) return toast('กรุณาเลือกช่องทางขาย', 'warning');
-  if (channel === 'อื่นๆ') {
-    const other = document.getElementById('channel_other').value.trim();
-    if (!other) return toast('กรุณาระบุช่องทาง (อื่นๆ)', 'warning');
-    payload.channel = other;   // เก็บชื่อช่องทางที่พิมพ์เอง
+  if (currentType !== 'dealer') {
+    if (!payload.store) return toast('กรุณาเลือกร้านค้า', 'warning');
+    if (!channel) return toast('กรุณาเลือกช่องทางขาย', 'warning');
+    if (channel === 'อื่นๆ') {
+      const other = document.getElementById('channel_other').value.trim();
+      if (!other) return toast('กรุณาระบุช่องทาง (อื่นๆ)', 'warning');
+      payload.channel = other;   // เก็บชื่อช่องทางที่พิมพ์เอง
+    }
   }
   if (!payload.purchase_date) return toast('กรุณาเลือกวันที่สั่งซื้อ', 'warning');
+
+  if (currentType === 'dealer') {
+    const pick = document.getElementById('dl_customer').value;
+    payload.cust_name = (pick === '__other') ? val('dl_customer_other') : pick;
+    payload.sale_person  = val('dl_sale');
+    payload.cust_address = document.getElementById('dl_address').value.trim();
+    payload.cust_phone   = val('dl_phone');
+    payload.ship_by      = val('dl_ship_by');
+    payload.deadline     = document.getElementById('dl_deadline').value;
+
+    if (!payload.sale_person) return toast('กรุณากรอกชื่อ Sale', 'warning');
+    if (!payload.cust_name)   return toast('กรุณาเลือกผู้แทนจำหน่าย', 'warning');
+    if (!payload.deadline)    return toast('กรุณาเลือกกำหนดส่งของ', 'warning');
+
+    const items = [];
+    let totalQty = 0;
+    document.querySelectorAll('#dealer-items [data-dealer-item]').forEach(c => {
+      const code = c.querySelector('[data-code]').value.trim();
+      const name = c.querySelector('[data-name]').value.trim();
+      if (!code && !name) return;
+      const qty = +c.querySelector('[data-qty]').value || 0;
+      totalQty += qty;
+      items.push({ code, name, color: c.querySelector('[data-color]').value.trim(), qty });
+    });
+    if (!items.length) return toast('กรุณากรอกรายการสินค้าอย่างน้อย 1 รายการ', 'warning');
+    if (totalQty <= 0)  return toast('จำนวนรวมต้องมากกว่า 0', 'warning');
+    payload.items = items;
+  }
 
   if (currentType === 'sale') {
     payload.cust_name = val('cust_name');
@@ -825,7 +1016,7 @@ function val(id) { return (document.getElementById(id).value || '').trim(); }
 async function loadForEdit(id) {
   const res = await API.getNote(id);
   if (!res.success) { toast(res.message || 'โหลดโน๊ตไม่ได้', 'error'); return; }
-  const { note, sale_items, exchange_from, exchange_to, tax } = res.data;
+  const { note, sale_items, exchange_from, exchange_to, tax, dealer_items } = res.data;
 
   currentType = note.type;
   renderTabs();
@@ -851,6 +1042,33 @@ async function loadForEdit(id) {
   document.getElementById('order_no').readOnly = (note.type === 'sale' && isAutoOrderChannel(chSel.value));
 
   // ตามประเภท
+  if (note.type === 'dealer') {
+    document.getElementById('order_no').readOnly = true;   // เลขที่ใบเบิกเดิม ห้ามแก้
+    document.getElementById('dl_sale').value    = note.sale_person || '';
+    document.getElementById('dl_address').value = note.cust_address || '';
+    document.getElementById('dl_phone').value   = note.cust_phone || '';
+    document.getElementById('dl_ship_by').value = note.ship_by || '';
+    if (note.deadline) {
+      if (fpDealerDeadline) fpDealerDeadline.setDate(note.deadline, true);
+      else document.getElementById('dl_deadline').value = note.deadline;
+    }
+    // ชื่อร้าน: ถ้าไม่ตรงรายชื่อในชีต = เคยพิมพ์เอง → เข้าโหมด "อื่นๆ"
+    const dSel = document.getElementById('dl_customer');
+    const known = (META.dealers || []).some(d => d.name === note.cust_name);
+    if (known) {
+      dSel.value = note.cust_name;
+    } else if (note.cust_name) {
+      dSel.value = '__other';
+      document.getElementById('dl-other-group').style.display = '';
+      document.getElementById('dl_customer_other').value = note.cust_name;
+    }
+    const box = document.getElementById('dealer-items');
+    box.innerHTML = '';
+    (dealer_items || []).forEach(it => addDealerItem(it));
+    if (!box.children.length) addDealerItem();
+    recalcDealer();
+  }
+
   if (note.type === 'sale') {
     document.getElementById('cust_name').value = note.cust_name || '';
     document.getElementById('cust_address').value = note.cust_address || '';

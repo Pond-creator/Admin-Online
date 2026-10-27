@@ -3,14 +3,15 @@
 // ============================================================
 if (!Auth.requireAuth()) throw new Error('no auth');
 
-const TYPE_LABELS = { sale: 'ออเดอร์ขาย', exchange: 'เปลี่ยนสินค้า', cancel: 'ยกเลิก', tax: 'ออกใบกำกับ' };
-const TYPE_BADGE  = { sale: 'success', exchange: 'info', cancel: 'danger', tax: 'primary' };
+const TYPE_LABELS = { sale: 'ออเดอร์ขาย', exchange: 'เปลี่ยนสินค้า', cancel: 'ยกเลิก', tax: 'ออกใบกำกับ', dealer: 'เบิกสินค้า' };
+const TYPE_BADGE  = { sale: 'success', exchange: 'info', cancel: 'danger', tax: 'primary', dealer: 'warning' };
 const DEFAULT_META = {
   stores: ['FO', 'FA', 'FF', 'GB'],
   channels: ['Facebook', 'Line', 'Shopee', 'Lazada', 'TikTok', 'Walk-in', 'Website', 'อื่นๆ'],
   types: [
     { key: 'tax', label: 'ออกใบกำกับภาษี' }, { key: 'sale', label: 'ออเดอร์ขาย' },
-    { key: 'exchange', label: 'เปลี่ยนสินค้า' }, { key: 'cancel', label: 'ยกเลิก' }
+    { key: 'exchange', label: 'เปลี่ยนสินค้า' }, { key: 'cancel', label: 'ยกเลิก' },
+    { key: 'dealer', label: 'เบิกสินค้า' }
   ]
 };
 let META = DEFAULT_META;
@@ -232,7 +233,7 @@ async function viewNote(id) {
 
 // สร้าง HTML เนื้อหารายละเอียดโน๊ต (ใช้ซ้ำทั้งหน้าดู / ออกเอกสาร / รายงานที่ออกแล้ว)
 function noteBodyHtml(data) {
-  const { note, sale_items, exchange_from, exchange_to, tax } = data;
+  const { note, sale_items, exchange_from, exchange_to, tax, dealer_items } = data;
 
   // รูปแนบ: ถ้าไฟล์เดียว → พิมพ์ไว้มุมขวาบนคู่กับข้อมูล (print เท่านั้น) · หลายไฟล์ = อยู่ล่างเหมือนเดิม
   const imgsArr = (note.images || '').split(',').filter(Boolean);
@@ -244,12 +245,38 @@ function noteBodyHtml(data) {
     <div class="detail-head"><div class="detail-grid">
       <div class="k">ประเภท</div><div><span class="badge badge-${TYPE_BADGE[note.type]}">${TYPE_LABELS[note.type]}</span></div>
       <div class="k">วันที่โน๊ต</div><div>${fmtDate(note.date_noted)}</div>
-      <div class="k">ร้านค้า</div><div>${escapeHtml(note.store)}</div>
-      <div class="k">ช่องทางขาย</div><div>${escapeHtml(note.channel)}</div>
-      <div class="k">เลขคำสั่งซื้อ</div><div>${escapeHtml(note.order_no || '-')}</div>
+      ${note.type === 'dealer' ? '' : `<div class="k">ร้านค้า</div><div>${escapeHtml(note.store)}</div>
+      <div class="k">ช่องทางขาย</div><div>${escapeHtml(note.channel)}</div>`}
+      <div class="k">${note.type === 'dealer' ? 'เลขที่ใบเบิก' : 'เลขคำสั่งซื้อ'}</div><div>${escapeHtml(note.order_no || '-')}</div>
       <div class="k">วันที่สั่งซื้อ</div><div>${fmtDate(note.purchase_date)}</div>
-      ${(note.type === 'tax' || note.deadline) ? `<div class="k">🗓️ ลูกค้าต้องใช้เอกสาร</div><div style="color:var(--danger);font-weight:700">${note.deadline ? (fmtDate(note.deadline) + (daysUntil(note.deadline) < 0 ? ' · เกินกำหนด ' + (-daysUntil(note.deadline)) + ' วัน' : (daysUntil(note.deadline) === 0 ? ' · ครบกำหนดวันนี้' : ' · อีก ' + daysUntil(note.deadline) + ' วัน'))) : '-'}</div>` : ''}
+      ${note.type === 'dealer' ? `<div class="k">กำหนดส่งของ</div><div style="font-weight:700">${fmtDate(note.deadline)}</div>` : ''}
+      ${(note.type === 'tax' || (note.deadline && note.type !== 'dealer')) ? `<div class="k">🗓️ ลูกค้าต้องใช้เอกสาร</div><div style="color:var(--danger);font-weight:700">${note.deadline ? (fmtDate(note.deadline) + (daysUntil(note.deadline) < 0 ? ' · เกินกำหนด ' + (-daysUntil(note.deadline)) + ' วัน' : (daysUntil(note.deadline) === 0 ? ' · ครบกำหนดวันนี้' : ' · อีก ' + daysUntil(note.deadline) + ' วัน'))) : '-'}</div>` : ''}
     </div>${proofTop}</div><hr style="border-color:var(--border);margin:16px 0">`;
+
+  if (note.type === 'dealer') {
+    const items = dealer_items || [];
+    const totalQty = items.reduce((s, i) => s + (+i.qty || 0), 0);
+    body += `<div class="detail-grid" style="margin-bottom:12px">
+      <div class="k">Sale</div><div><b>${escapeHtml(note.sale_person || '-')}</b></div>
+      <div class="k">Customer</div><div><b>${escapeHtml(note.cust_name || '-')}</b></div>
+      ${note.cust_address ? `<div class="k">ที่อยู่</div><div class="remark-text">${escapeHtml(note.cust_address)}</div>` : ''}
+      ${note.cust_phone ? `<div class="k">Tel.</div><div>${escapeHtml(note.cust_phone)}</div>` : ''}
+      ${note.ship_by ? `<div class="k">จัดส่งโดย</div><div>${escapeHtml(note.ship_by)}</div>` : ''}
+    </div>`;
+    body += `<table style="margin-bottom:12px"><thead><tr>
+        <th style="width:60px">ลำดับ</th><th>รหัส</th><th>ชื่อสินค้า</th><th>สี</th><th style="text-align:right">จำนวน</th>
+      </tr></thead><tbody>` +
+      items.map((i, n) => `<tr>
+        <td>${n + 1}</td>
+        <td>${escapeHtml(i.code)}</td>
+        <td>${escapeHtml(i.name)}</td>
+        <td>${escapeHtml(i.color)}</td>
+        <td style="text-align:right">${i.qty}</td></tr>`).join('') +
+      `</tbody><tfoot><tr>
+        <td colspan="4" style="text-align:right;font-weight:700">รวม</td>
+        <td style="text-align:right;font-weight:700">${totalQty.toLocaleString('en-US')}</td>
+      </tr></tfoot></table>`;
+  }
 
   if (note.type === 'sale') {
     if (note.cust_name || note.cust_address || note.cust_phone) {
