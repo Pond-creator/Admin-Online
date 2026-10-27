@@ -68,7 +68,8 @@ const Auth = {
     'issued.html':    ['admin', 'staff', 'account'],
     'sales.html':     ['admin', 'staff', 'account'],
     'cancels.html':   ['admin', 'staff', 'account', 'stock'],
-    'exchanges.html': ['admin', 'staff', 'account', 'stock']
+    'exchanges.html': ['admin', 'staff', 'account', 'stock'],
+    'dealer.html':    ['admin', 'staff', 'account']   // รายงานเบิกสินค้าผู้แทนจำหน่าย (บัญชีดู/โหลดเอกสารได้)
   },
   canPage: (page) => (Auth.pageRoles[page] || []).includes((Auth.getUser() || {}).role),
 

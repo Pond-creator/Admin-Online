@@ -183,12 +183,12 @@ function renderTypeSection() {
 // ตัวเลือก "จัดส่งโดย" — เพิ่ม/แก้ได้ที่นี่ที่เดียว ("พิมพ์เอง" ถูกใส่ให้เป็นตัวแรกเสมอ)
 const SHIP_BY_OPTIONS = ['ขนส่งรถของบริษัท', 'Kerry Express', 'Flash Express', 'J&T Express', 'ไปรษณีย์ไทย', 'ลูกค้ามารับเอง'];
 
-// เลือกวิธีจัดส่ง → "พิมพ์เอง" โชว์ช่องพิมพ์ · เลือกจากรายการ = เติมให้แล้วซ่อนช่องพิมพ์
+// เลือกวิธีจัดส่ง → ช่องพิมพ์ซ่อนไว้ โผล่เฉพาะตอนเลือก "อื่นๆ (พิมพ์เอง)" (แบบเดียวกับ Customer)
 function onShipByPick() {
   const v = document.getElementById('dl_ship_by_sel').value;
   const box = document.getElementById('dl_ship_by');
   if (v === '__other') { box.style.display = ''; box.focus(); }
-  else { box.value = v; box.style.display = 'none'; }
+  else { box.value = v; box.style.display = 'none'; }   // '' = ยังไม่เลือก → ล้างค่าให้ด้วย
 }
 // ซ่อน/แสดงช่องร่วมตามประเภท — ใบเบิกเบิกผสมแบรนด์ จึงไม่เก็บร้านค้า/ช่องทางขาย
 function applyTypeFieldVisibility() {
@@ -259,10 +259,11 @@ function tplDealer() {
         <div class="form-group" style="margin-bottom:0">
           <label class="form-label">จัดส่งโดย</label>
           <select id="dl_ship_by_sel" class="form-control">
-            ${['__other'].concat(SHIP_BY_OPTIONS).map(v =>
-              `<option value="${escapeHtml(v)}">${v === '__other' ? '✏️ พิมพ์เอง' : escapeHtml(v)}</option>`).join('')}
+            <option value="">— เลือกวิธีจัดส่ง —</option>
+            ${SHIP_BY_OPTIONS.map(v => `<option>${escapeHtml(v)}</option>`).join('')}
+            <option value="__other">อื่นๆ (พิมพ์เอง)</option>
           </select>
-          <input id="dl_ship_by" class="form-control" style="margin-top:8px" placeholder="พิมพ์วิธีจัดส่ง เช่น ขนส่งรถของบริษัท">
+          <input id="dl_ship_by" class="form-control" style="margin-top:8px;display:none" placeholder="พิมพ์วิธีจัดส่ง เช่น ขนส่งรถของบริษัท">
         </div>
       </div>
     </div>
@@ -272,7 +273,8 @@ function tplDealer() {
     <div id="dealer-items"></div>
     <button type="button" class="btn btn-secondary btn-sm" id="add-dealer-item">➕ เพิ่มรายการ</button>
     <div class="total-box" style="margin-top:16px">
-      <div class="total-row grand"><span>รวมจำนวน</span><span id="dl-total">0</span></div>
+      <div class="total-row"><span>รวมจำนวน</span><span id="dl-total">0</span> <span style="margin-left:4px">ชิ้น</span></div>
+      <div class="total-row grand"><span>รวมเป็นเงิน</span><span id="dl-total-money">0.00</span> <span style="margin-left:4px">บาท</span></div>
     </div>
   </div>`;
 }
@@ -290,9 +292,13 @@ function itemCardDealer(no) {
       <div class="form-group"><label class="form-label">สี</label>
         <input class="form-control" data-color placeholder="ดึงอัตโนมัติ"></div>
     </div>
-    <div class="form-group" style="max-width:200px;margin-bottom:0">
-      <label class="form-label">จำนวน</label>
-      <input type="number" class="form-control" data-qty value="1" min="1" step="1">
+    <div class="grid-3">
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">จำนวน</label>
+        <input type="number" class="form-control" data-qty value="1" min="1" step="1"></div>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">ราคา/ชิ้น</label>
+        <input type="number" class="form-control" data-price value="0" min="0" step="0.01" placeholder="ดึงอัตโนมัติ"></div>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">รวมเงิน</label>
+        <input class="form-control" data-line readonly tabindex="-1" value="0.00" style="background:var(--bg-card2);font-weight:700"></div>
     </div>
   </div>`;
 }
@@ -307,12 +313,14 @@ function addDealerItem(data) {
     if (box.querySelectorAll('[data-dealer-item]').length <= 1) return toast('ต้องมีอย่างน้อย 1 รายการ', 'warning');
     card.remove(); renumberDealer(); recalcDealer();
   });
-  card.querySelector('[data-qty]').addEventListener('input', recalcDealer);
+  ['[data-qty]', '[data-price]'].forEach(sel =>
+    card.querySelector(sel).addEventListener('input', recalcDealer));
   if (data) {
     card.querySelector('[data-code]').value  = data.code || '';
     card.querySelector('[data-name]').value  = data.name || '';
     card.querySelector('[data-color]').value = data.color || '';
     card.querySelector('[data-qty]').value   = data.qty || 1;
+    card.querySelector('[data-price]').value = data.price || 0;
   }
   recalcDealer();
   return card;
@@ -324,11 +332,18 @@ function renumberDealer() {
 }
 
 function recalcDealer() {
-  let sum = 0;
-  document.querySelectorAll('#dealer-items [data-dealer-item]').forEach(c =>
-    sum += (+c.querySelector('[data-qty]').value || 0));
-  const el = document.getElementById('dl-total');
-  if (el) el.textContent = sum.toLocaleString('en-US');
+  let qty = 0, money = 0;
+  document.querySelectorAll('#dealer-items [data-dealer-item]').forEach(c => {
+    const q = +c.querySelector('[data-qty]').value || 0;
+    const p = +c.querySelector('[data-price]').value || 0;
+    const line = q * p;
+    qty += q; money += line;
+    c.querySelector('[data-line]').value = fmtMoney(line);
+  });
+  const q = document.getElementById('dl-total');
+  const m = document.getElementById('dl-total-money');
+  if (q) q.textContent = qty.toLocaleString('en-US');
+  if (m) m.textContent = fmtMoney(money);
 }
 
 function setEntity(type) {
@@ -761,6 +776,12 @@ function fillTax(tax) {
 }
 
 // ====== Product lookup ======
+// คำนวณยอดใหม่ให้ถูกชุด (การ์ดใบเบิก vs การ์ดออเดอร์ขาย/ของแถม)
+function recalcForCard(card) {
+  if (card.hasAttribute('data-dealer-item')) recalcDealer();
+  else if (document.getElementById('shipping_fee')) recalcSale();
+}
+
 function bindLookup(card) {
   const codeEl = card.querySelector('[data-code]');
   let lastCode = '';          // กันยิงซ้ำเมื่อรหัสไม่เปลี่ยน
@@ -782,7 +803,8 @@ function bindLookup(card) {
       // ดึงจากระบบสำเร็จ → ล็อกไม่ให้แก้ (ชื่อ/สี/ราคา)
       nameEl.value = res.data.name; nameEl.readOnly = true;
       colorEl.value = res.data.color; colorEl.readOnly = true;
-      if (priceEl) { priceEl.value = res.data.price; priceEl.readOnly = true; recalcSale(); }
+      // คำนวณยอดใหม่ตามชนิดของการ์ด — ใบเบิกไม่มีช่องค่าจัดส่ง เรียก recalcSale จะ error
+      if (priceEl) { priceEl.value = res.data.price; priceEl.readOnly = true; recalcForCard(card); }
     } else {
       lastCode = '';   // ให้ลองใหม่ได้
       // ไม่พบในระบบ → ปลดล็อก ให้กรอกเอง (ขายของนอกระบบ)
@@ -870,18 +892,21 @@ async function submitNote(e) {
     if (!payload.deadline)    return toast('กรุณาเลือกกำหนดส่งของ', 'warning');
 
     const items = [];
-    let totalQty = 0;
+    let totalQty = 0, totalMoney = 0;
     document.querySelectorAll('#dealer-items [data-dealer-item]').forEach(c => {
       const code = c.querySelector('[data-code]').value.trim();
       const name = c.querySelector('[data-name]').value.trim();
       if (!code && !name) return;
       const qty = +c.querySelector('[data-qty]').value || 0;
-      totalQty += qty;
-      items.push({ code, name, color: c.querySelector('[data-color]').value.trim(), qty });
+      const price = +c.querySelector('[data-price]').value || 0;
+      const line_total = +(qty * price).toFixed(2);
+      totalQty += qty; totalMoney += line_total;
+      items.push({ code, name, color: c.querySelector('[data-color]').value.trim(), qty, price, line_total });
     });
     if (!items.length) return toast('กรุณากรอกรายการสินค้าอย่างน้อย 1 รายการ', 'warning');
     if (totalQty <= 0)  return toast('จำนวนรวมต้องมากกว่า 0', 'warning');
     payload.items = items;
+    payload.grand_total = +totalMoney.toFixed(2);   // ยอดรวมเงินของใบเบิก
   }
 
   if (currentType === 'sale') {
@@ -1059,10 +1084,10 @@ async function loadForEdit(id) {
     document.getElementById('dl_address').value = note.cust_address || '';
     document.getElementById('dl_phone').value   = note.cust_phone || '';
     document.getElementById('dl_ship_by').value = note.ship_by || '';
-    // ถ้าวิธีจัดส่งตรงกับตัวเลือกในรายการ → เลือกให้ · ไม่ตรง (เคยพิมพ์เอง) → คงโหมดพิมพ์เอง
+    // ตรงกับตัวเลือกในรายการ → เลือกให้ · เคยพิมพ์เอง → เข้าโหมดพิมพ์เอง · ว่าง → ยังไม่เลือก
     const shipSel = document.getElementById('dl_ship_by_sel');
-    shipSel.value = SHIP_BY_OPTIONS.includes(note.ship_by) ? note.ship_by : '__other';
-    onShipByPick();
+    shipSel.value = SHIP_BY_OPTIONS.includes(note.ship_by) ? note.ship_by : (note.ship_by ? '__other' : '');
+    if (shipSel.value === '__other') document.getElementById('dl_ship_by').style.display = '';
     if (note.deadline) {
       if (fpDealerDeadline) fpDealerDeadline.setDate(note.deadline, true);
       else document.getElementById('dl_deadline').value = note.deadline;

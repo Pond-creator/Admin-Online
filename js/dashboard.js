@@ -256,6 +256,7 @@ function noteBodyHtml(data) {
   if (note.type === 'dealer') {
     const items = dealer_items || [];
     const totalQty = items.reduce((s, i) => s + (+i.qty || 0), 0);
+    const totalMoney = items.reduce((s, i) => s + (+i.line_total || 0), 0);
     body += `<div class="detail-grid" style="margin-bottom:12px">
       <div class="k">Sale</div><div><b>${escapeHtml(note.sale_person || '-')}</b></div>
       <div class="k">Customer</div><div><b>${escapeHtml(note.cust_name || '-')}</b></div>
@@ -264,17 +265,22 @@ function noteBodyHtml(data) {
       ${note.ship_by ? `<div class="k">จัดส่งโดย</div><div>${escapeHtml(note.ship_by)}</div>` : ''}
     </div>`;
     body += `<table style="margin-bottom:12px"><thead><tr>
-        <th style="width:60px">ลำดับ</th><th>รหัส</th><th>ชื่อสินค้า</th><th>สี</th><th style="text-align:right">จำนวน</th>
+        <th style="width:60px">ลำดับ</th><th>รหัส</th><th>ชื่อสินค้า</th><th>สี</th>
+        <th style="text-align:right">จำนวน</th><th style="text-align:right">ราคา/ชิ้น</th><th style="text-align:right">รวมเงิน</th>
       </tr></thead><tbody>` +
       items.map((i, n) => `<tr>
         <td>${n + 1}</td>
         <td>${escapeHtml(i.code)}</td>
         <td>${escapeHtml(i.name)}</td>
         <td>${escapeHtml(i.color)}</td>
-        <td style="text-align:right">${i.qty}</td></tr>`).join('') +
+        <td style="text-align:right">${i.qty}</td>
+        <td style="text-align:right">${fmtMoney(i.price)}</td>
+        <td style="text-align:right">${fmtMoney(i.line_total)}</td></tr>`).join('') +
       `</tbody><tfoot><tr>
         <td colspan="4" style="text-align:right;font-weight:700">รวม</td>
         <td style="text-align:right;font-weight:700">${totalQty.toLocaleString('en-US')}</td>
+        <td></td>
+        <td style="text-align:right;font-weight:700;color:var(--primary)">${fmtMoney(totalMoney)}</td>
       </tr></tfoot></table>`;
   }
 

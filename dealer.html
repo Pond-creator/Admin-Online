@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>">
+  <title>Admin Online — รายงานเบิกสินค้าผู้แทนจำหน่าย</title>
+  <link rel="stylesheet" href="lib/flatpickr.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <span class="brand"><span class="icon">📝</span>Admin Online</span>
+  <nav>
+    <a href="form.html" class="nav-create">➕ สร้างโน๊ต</a>
+    <span class="nav-sep"></span>
+    <a href="dashboard.html">📋 รายการโน๊ต</a>
+    <a href="sales.html">💰 รายงานขาย</a>
+    <a href="issued.html">📄 ใบกำกับที่ออกแล้ว</a>
+    <a href="cancels.html">🚫 รายงานยกเลิก</a>
+    <a href="exchanges.html">🔄 รายงานเปลี่ยนสินค้า</a>
+    <a href="dealer.html" class="active">🚚 รายงานเบิกสินค้า</a>
+  </nav>
+  <span class="spacer"></span>
+  <button class="btn btn-primary btn-sm" onclick="location.reload()">🔄 รีเฟรช</button>
+  <span class="user-box" id="user-box"></span>
+  <button class="btn btn-secondary btn-sm" onclick="Auth.logout()">ออกจากระบบ</button>
+</header>
+
+<div class="container" style="max-width:1100px">
+  <h2 style="margin-bottom:16px;color:var(--warning)">🚚 รายงานเบิกสินค้าผู้แทนจำหน่าย
+    <span id="dr-count" style="font-size:15px;color:var(--text-muted)">0</span> ใบ ·
+    รวม <span id="dr-sum" style="color:var(--primary)">0</span> ชิ้น ·
+    เป็นเงิน <span id="dr-money" style="color:var(--primary)">0.00</span> บาท</h2>
+
+  <div class="filters">
+    <div class="form-group">
+      <label class="form-label">ช่วงเวลา (โหลด)</label>
+      <select id="dr-period" class="form-control">
+        <option value="2">2 เดือนล่าสุด</option>
+        <option value="6">6 เดือน</option>
+        <option value="12">1 ปี</option>
+        <option value="0">ทั้งหมด</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ผู้แทนจำหน่าย</label>
+      <select id="dr-customer" class="form-control"><option value="">ทั้งหมด</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sale</label>
+      <select id="dr-sale" class="form-control"><option value="">ทั้งหมด</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">จากวันที่สั่งซื้อ</label>
+      <input id="dr-from" class="form-control" placeholder="วว/ดด/ปปปป" style="max-width:150px">
+    </div>
+    <div class="form-group">
+      <label class="form-label">ถึงวันที่สั่งซื้อ</label>
+      <input id="dr-to" class="form-control" placeholder="วว/ดด/ปปปป" style="max-width:150px">
+    </div>
+    <div class="form-group" style="flex:1;min-width:200px">
+      <label class="form-label">ค้นหา (เลขที่ใบเบิก / ผู้แทนฯ / หมายเหตุ)</label>
+      <input id="dr-q" class="form-control" placeholder="พิมพ์เพื่อค้นหา...">
+    </div>
+    <button class="btn btn-primary" id="dr-print-sel">🖨️ พิมพ์ที่เลือก (0)</button>
+    <button class="btn btn-success" id="dr-export">⬇️ Export Excel</button>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead><tr>
+        <th style="width:36px;text-align:center"><input type="checkbox" id="dr-check-all" title="เลือกทั้งหมด"></th>
+        <th>เลขที่ใบเบิก</th><th>วันที่สั่งซื้อ</th><th>กำหนดส่ง</th>
+        <th>Sale</th><th>ผู้แทนจำหน่าย</th><th style="text-align:right">จำนวน</th><th style="text-align:right">รวมเงิน</th><th></th>
+      </tr></thead>
+      <tbody id="dr-rows"><tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:30px">กำลังโหลด...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+
+<script src="lib/flatpickr.min.js"></script>
+<script src="lib/flatpickr-th.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/dealer.js"></script>
+<script src="js/users.js"></script>
+</body>
+</html>
