@@ -3,8 +3,8 @@
 //  ใช้ร่วมทั้งหน้าฟอร์มและ Dashboard
 // ============================================================
 const Recent = {
-  LABELS: { sale: 'ออเดอร์ขาย', exchange: 'เปลี่ยนสินค้า', cancel: 'ยกเลิก', tax: 'ออกใบกำกับ' },
-  BADGE: { sale: 'success', exchange: 'info', cancel: 'danger', tax: 'primary' },
+  LABELS: { sale: 'ออเดอร์ขาย', exchange: 'เปลี่ยนสินค้า', cancel: 'ยกเลิก', tax: 'ออกใบกำกับ', dealer: 'เบิกสินค้า' },
+  BADGE: { sale: 'success', exchange: 'info', cancel: 'danger', tax: 'primary', dealer: 'warning' },
   filter: '',
   items: [],
   page: 0,
@@ -42,7 +42,7 @@ const Recent = {
 
     const chips = [{ k: '', l: 'ทั้งหมด' },
       { k: 'tax', l: 'ใบกำกับ' }, { k: 'sale', l: 'ขาย' },
-      { k: 'exchange', l: 'เปลี่ยน' }, { k: 'cancel', l: 'ยกเลิก' }];
+      { k: 'exchange', l: 'เปลี่ยน' }, { k: 'cancel', l: 'ยกเลิก' }, { k: 'dealer', l: 'เบิกสินค้า' }];
     document.getElementById('recent-tabs').innerHTML = chips.map(c =>
       `<span class="recent-chip ${c.k === '' ? 'active' : ''}" data-k="${c.k}">${c.l}</span>`).join('');
     document.querySelectorAll('#recent-tabs .recent-chip').forEach(ch =>
@@ -92,9 +92,11 @@ const Recent = {
           <span class="r-date">${fmtDate(n.date_noted)}</span>
           ${Auth.can('delete') ? `<button class="r-del" data-del="${n.id}" title="ลบโน๊ต"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>` : ''}
         </div>
-        <div class="r-meta"><b>${escapeHtml(n.store || '-')}</b> · ${escapeHtml(n.channel || '-')}
+        <div class="r-meta">${n.type === 'dealer'
+            ? `<b>${escapeHtml(n.cust_name || '-')}</b>${n.sale_person ? ' · Sale ' + escapeHtml(n.sale_person) : ''}`
+            : `<b>${escapeHtml(n.store || '-')}</b> · ${escapeHtml(n.channel || '-')}`}
           ${n.order_no ? '· ' + escapeHtml(n.order_no) : ''}
-          ${n.type === 'sale' ? '· ' + fmtMoney(n.grand_total) + '฿' : ''}</div>
+          ${(n.type === 'sale' || n.type === 'dealer') ? '· ' + fmtMoney(n.grand_total) + '฿' : ''}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:3px">โดย ${escapeHtml(n.created_by_name || '-')}</div>
         ${n.updated_at ? `<div style="font-size:11px;color:var(--warning);margin-top:2px">✏️ แก้ไขวันที่ ${fmtDate(n.updated_at)}</div>` : ''}
       </div>`).join('');
