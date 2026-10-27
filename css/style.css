@@ -1323,7 +1323,11 @@ td:hover .btn-img-quick,
 /* เลขหน้า X/Y มุมขวาล่างของทุกหน้า */
 .dl-pageno { text-align: right; font-size: 11px; color: #555; margin-top: 8px; }
 
+/* เอกสารสำหรับพิมพ์ — ซ่อนจากหน้าจอ แต่ยังเรนเดอร์จริง (รูปโหลด/วัดความสูงได้) */
+.print-only-area { position: fixed; left: -99999px; top: 0; width: 182mm; }
+
 @media print {
+  .print-only-area { position: static !important; left: auto !important; width: auto !important; }
   /* 1 .dl-page = 1 หน้ากระดาษเป๊ะ (JS แบ่งแถวมาให้แล้ว) */
   .dl-page { page-break-after: always; break-after: page; }
   #print-area .dl-page:last-child { page-break-after: auto; break-after: auto; }

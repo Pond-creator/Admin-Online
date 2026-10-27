@@ -162,7 +162,7 @@ const DEALER = {
   // แสดงเอกสาร: วัดความสูงจริงแล้วแบ่งหน้าเอง → คุมได้ว่าหน้า 2+ ไม่มีหัวโลโก้ และใส่เลขหน้า X/Y ได้
   async renderPrint(list) {
     const root = document.getElementById('modal-root');
-    root.innerHTML = '<div id="print-area"></div>';
+    root.innerHTML = '<div id="print-area" class="print-only-area"></div>';
     const area = document.getElementById('print-area');
 
     for (const data of list) {
@@ -173,6 +173,9 @@ const DEALER = {
     const imgs = [...area.querySelectorAll('img')];
     await Promise.all(imgs.map(im => im.complete ? Promise.resolve()
       : new Promise(r => { im.onload = im.onerror = r; })));
+    // เคลียร์เอกสารทิ้งหลังพิมพ์/ยกเลิก ไม่ให้ค้างอยู่ในหน้า
+    const clear = () => { root.innerHTML = ''; window.removeEventListener('afterprint', clear); };
+    window.addEventListener('afterprint', clear);
     setTimeout(() => window.print(), 80);
   },
 
