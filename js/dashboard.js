@@ -114,8 +114,20 @@ function render() {
   });
 
   if (byDeadline) {
-    // เฉพาะที่มี deadline → เรียงใกล้สุดก่อน
-    rows = rows.filter(n => n.deadline).sort((a, b) => String(a.deadline).localeCompare(String(b.deadline)));
+    // เรียงตาม deadline แบ่งเป็น 3 กลุ่ม (ในแต่ละกลุ่มเรียงวันเก่า→ใหม่ เหมือนเดิม)
+    //   0 = ออเดอร์ขายที่ขอใบกำกับและ "ยังไม่ออกเอกสาร" → บนสุด (เสี่ยงหลุดเพราะหน้าตาเหมือนออเดอร์ขายธรรมดา)
+    //   1 = ที่เหลือ
+    //   2 = เกินกำหนดตั้งแต่ 30 วันขึ้นไป → ล่างสุด (ของเก่ามาก ไม่ให้บังของที่ต้องรีบ) — กฎนี้ชนะกลุ่ม 0
+    const STALE_DAYS = 30;
+    const isIssued = n => (n.issued === true || n.issued === 'TRUE' || n.issued === 'true');
+    const bucket = n => {
+      const d = daysUntil(n.deadline);
+      if (d !== null && d <= -STALE_DAYS) return 2;
+      if (n.type === 'sale' && n.has_tax && !isIssued(n)) return 0;
+      return 1;
+    };
+    rows = rows.filter(n => n.deadline)
+      .sort((a, b) => bucket(a) - bucket(b) || String(a.deadline).localeCompare(String(b.deadline)));
   }
 
   const pager = document.getElementById('dash-pager');
