@@ -54,6 +54,8 @@ async function init() {
   document.getElementById('f-q').addEventListener('input', rerender0);
   document.getElementById('f-from').addEventListener('change', rerender0);
   document.getElementById('f-to').addEventListener('change', rerender0);
+  document.getElementById('btn-deadline').title =
+    'แสดงเฉพาะงานใบกำกับภาษีที่มีกำหนดวัน · ออเดอร์ขายที่ขอใบกำกับและยังไม่ออกเอกสารจะอยู่บนสุด · เกินกำหนด 30 วันขึ้นไปจะอยู่ล่างสุด';
   document.getElementById('btn-deadline').addEventListener('click', () => {
     byDeadline = !byDeadline;
     document.getElementById('btn-deadline').classList.toggle('btn-success', byDeadline);
@@ -120,19 +122,23 @@ function render() {
     //   2 = เกินกำหนดตั้งแต่ 30 วันขึ้นไป → ล่างสุด (ของเก่ามาก ไม่ให้บังของที่ต้องรีบ) — กฎนี้ชนะกลุ่ม 0
     const STALE_DAYS = 30;
     const isIssued = n => (n.issued === true || n.issued === 'TRUE' || n.issued === 'true');
+    // โหมดนี้ไว้จับ "งานใบกำกับภาษี" เท่านั้น — ใบเบิกสินค้าใช้ deadline เป็น "กำหนดส่งของ" คนละเรื่อง จึงไม่เอามาปน
+    // เช็คด้วย has_tax (มีข้อมูลใบกำกับแนบ) → ถ้าวันหลังประเภทอื่นเปิดให้ขอใบกำกับได้ จะวิ่งเข้ามาเองโดยไม่ต้องแก้โค้ด
+    const isTaxWork = n => (n.type === 'tax') || !!n.has_tax;
     const bucket = n => {
-      const d = daysUntil(n.deadline);
+      const d = daysUntil(effectiveDeadline(n));
       if (d !== null && d <= -STALE_DAYS) return 2;
       if (n.type === 'sale' && n.has_tax && !isIssued(n)) return 0;
       return 1;
     };
-    rows = rows.filter(n => n.deadline)
-      .sort((a, b) => bucket(a) - bucket(b) || String(a.deadline).localeCompare(String(b.deadline)));
+    rows = rows.filter(n => isTaxWork(n) && effectiveDeadline(n))
+      .sort((a, b) => bucket(a) - bucket(b)
+        || String(effectiveDeadline(a)).localeCompare(String(effectiveDeadline(b))));
   }
 
   const pager = document.getElementById('dash-pager');
   if (!rows.length) {
-    tbody.innerHTML = row8(byDeadline ? 'ไม่มีรายการที่มี deadline' : 'ไม่พบรายการ');
+    tbody.innerHTML = row8(byDeadline ? 'ไม่มีงานใบกำกับภาษีที่มีกำหนดวัน' : 'ไม่พบรายการ');
     if (pager) pager.innerHTML = '';
     return;
   }
@@ -146,7 +152,7 @@ function render() {
   const pageRows = rows.slice(start, start + DASH_PER);
 
   tbody.innerHTML = pageRows.map(n => {
-    const dl = deadlineTag(n.deadline);
+    const dl = deadlineTag(effectiveDeadline(n));
     const cust = n.customer ? `<div style="font-size:11px;color:var(--text-muted)">${escapeHtml(n.customer)}</div>` : '';
     return `
     <tr>
@@ -187,6 +193,19 @@ function daysUntil(ymd) {
   const n = new Date();
   const today = new Date(n.getFullYear(), n.getMonth(), n.getDate());
   return Math.round((target - today) / 86400000);
+}
+
+// วันกำหนดใช้เอกสาร "ที่ใช้จริง"
+// ออเดอร์ขายที่ขอใบกำกับไม่มีช่องให้แอดมินกรอก → ถ้ายังไม่มีวัน ให้นับ วันที่โน๊ต + 7 วัน ให้เอง
+// (โน๊ตใหม่ฝั่ง GAS เขียนวันลงชีตให้แล้ว · ตัวนี้ครอบใบเก่าที่ยังว่าง โดยไม่ต้องแก้ข้อมูลย้อนหลัง)
+const SALE_TAX_DEADLINE_DAYS = 7;
+function effectiveDeadline(n) {
+  if (n.deadline) return n.deadline;
+  if (n.type !== 'sale' || !n.has_tax) return '';
+  const m = String(n.date_noted || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  const d = new Date(+m[1], +m[2] - 1, +m[3] + SALE_TAX_DEADLINE_DAYS);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 // ป้าย deadline (แดงถ้าเกินกำหนด)
@@ -262,7 +281,14 @@ function noteBodyHtml(data) {
       <div class="k">${note.type === 'dealer' ? 'เลขที่ใบเบิก' : 'เลขคำสั่งซื้อ'}</div><div>${escapeHtml(note.order_no || '-')}</div>
       <div class="k">วันที่สั่งซื้อ</div><div>${fmtDate(note.purchase_date)}</div>
       ${note.type === 'dealer' ? `<div class="k">กำหนดส่งของ</div><div style="font-weight:700">${fmtDate(note.deadline)}</div>` : ''}
-      ${(note.type === 'tax' || (note.deadline && note.type !== 'dealer')) ? `<div class="k">🗓️ ลูกค้าต้องใช้เอกสาร</div><div style="color:var(--danger);font-weight:700">${note.deadline ? (fmtDate(note.deadline) + (daysUntil(note.deadline) < 0 ? ' · เกินกำหนด ' + (-daysUntil(note.deadline)) + ' วัน' : (daysUntil(note.deadline) === 0 ? ' · ครบกำหนดวันนี้' : ' · อีก ' + daysUntil(note.deadline) + ' วัน'))) : '-'}</div>` : ''}
+      ${(() => {
+        const edl = effectiveDeadline(note);
+        if (note.type === 'dealer') return '';
+        if (note.type !== 'tax' && !edl) return '';
+        const extra = edl ? (daysUntil(edl) < 0 ? ' · เกินกำหนด ' + (-daysUntil(edl)) + ' วัน'
+          : (daysUntil(edl) === 0 ? ' · ครบกำหนดวันนี้' : ' · อีก ' + daysUntil(edl) + ' วัน')) : '';
+        return `<div class="k">🗓️ ลูกค้าต้องใช้เอกสาร</div><div style="color:var(--danger);font-weight:700">${edl ? fmtDate(edl) + extra : '-'}</div>`;
+      })()}
     </div>${proofTop}</div><hr style="border-color:var(--border);margin:16px 0">`;
 
   if (note.type === 'dealer') {
