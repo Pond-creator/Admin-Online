@@ -103,6 +103,11 @@ function render() {
   const q = document.getElementById('f-q').value.trim().toLowerCase();
 
   let rows = ALL.filter(n => {
+    // ออกใบกำกับแล้ว = จบงาน → ไม่ต้องค้างอยู่หน้านี้ (ไปดูที่หน้า "ใบกำกับที่ออกแล้ว" แทน)
+    // ⚠️ ต้องซ่อนฝั่งหน้าเว็บเท่านั้น ห้ามย้ายไปซ่อนที่ GAS — listNotes ตัวเดียวกันนี้เลี้ยง
+    //    "รายงานขาย" และ "รายการล่าสุด (หน้าสร้างโน๊ต)" ด้วย ถ้าซ่อนที่ GAS ยอดขาย/ปุ่มแก้ไข-ลบ จะหายไปด้วย
+    //    (GAS ซ่อนให้แล้วเฉพาะ type 'tax' — ออเดอร์ขายที่ขอใบกำกับต้องมาซ่อนตรงนี้)
+    if (isIssuedNote(n) && isTaxWork(n)) return false;
     if (type && n.type !== type) return false;
     if (store && n.store !== store) return false;
     if (channel && n.channel !== channel) return false;
@@ -121,14 +126,11 @@ function render() {
     //   1 = ที่เหลือ
     //   2 = เกินกำหนดตั้งแต่ 30 วันขึ้นไป → ล่างสุด (ของเก่ามาก ไม่ให้บังของที่ต้องรีบ) — กฎนี้ชนะกลุ่ม 0
     const STALE_DAYS = 30;
-    const isIssued = n => (n.issued === true || n.issued === 'TRUE' || n.issued === 'true');
     // โหมดนี้ไว้จับ "งานใบกำกับภาษี" เท่านั้น — ใบเบิกสินค้าใช้ deadline เป็น "กำหนดส่งของ" คนละเรื่อง จึงไม่เอามาปน
-    // เช็คด้วย has_tax (มีข้อมูลใบกำกับแนบ) → ถ้าวันหลังประเภทอื่นเปิดให้ขอใบกำกับได้ จะวิ่งเข้ามาเองโดยไม่ต้องแก้โค้ด
-    const isTaxWork = n => (n.type === 'tax') || !!n.has_tax;
     const bucket = n => {
       const d = daysUntil(effectiveDeadline(n));
       if (d !== null && d <= -STALE_DAYS) return 2;
-      if (n.type === 'sale' && n.has_tax && !isIssued(n)) return 0;
+      if (n.type === 'sale' && n.has_tax && !isIssuedNote(n)) return 0;   // (ออกแล้วถูกกรองทิ้งไปก่อนหน้านี้แล้ว — กันพลาดไว้)
       return 1;
     };
     rows = rows.filter(n => isTaxWork(n) && effectiveDeadline(n))
@@ -207,6 +209,11 @@ function effectiveDeadline(n) {
   const d = new Date(+m[1], +m[2] - 1, +m[3] + SALE_TAX_DEADLINE_DAYS);
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
+
+// "งานใบกำกับภาษี" = ใบกำกับ (type tax) หรือ ออเดอร์ขายที่แนบข้อมูลใบกำกับ
+// เช็คด้วย has_tax ไม่ใช่ชื่อประเภท → วันหลังประเภทอื่นเปิดให้ขอใบกำกับได้ จะวิ่งเข้ามาเองโดยไม่ต้องแก้โค้ด
+const isTaxWork   = n => (n.type === 'tax') || !!n.has_tax;
+const isIssuedNote = n => (n.issued === true || n.issued === 'TRUE' || n.issued === 'true');
 
 // ป้าย deadline (แดงถ้าเกินกำหนด)
 function deadlineTag(ymd) {
